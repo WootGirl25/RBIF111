@@ -82,7 +82,7 @@ y<-Sin(2)
 print(y)
 ```
 
-This code takes the sin of 1, assigns it to the variable x, prints it to the screen then calls an error. This error occurs in the assignment of Sin(2) to variable y. the correct function is sin() not Sin() and this typo has therefore stalled the rest of the code from running. Looking at the remainder of this code, the 1st line completes the same task as lines 2-5 put toghether, it has just been condensed into 1 line as `;` can be used to separate commands.
+This code takes the sin of 1, assigns it to the variable x, prints it to the screen then calls an error. This error occurs in the assignment of Sin(2) to variable y. the correct function is sin() not Sin() and this typo has therefore stalled the rest of the code from running. Looking at the remainder of this code, the 1st line completes the same task as lines 2-5 put together, it has just been condensed into 1 line as `;` can be used to separate commands.
 
 **b.**
 ```{r}
@@ -113,4 +113,18 @@ for ( i in 1:dim(m)[[1]] ) {
  }
 }
 ```
-Tough one to get my head around. The code is creating a 3x3 matrix from the vector of values and inputting it into the matrix by rows. It then goes into a outer for loop that iterates over each row (as diam() results in row x column and we select the 1st of the two with [[1]]). For each row it attempts to sort the values in ascending order and includes the na.last argument which dictates how to handle NA values in the vector. Per the help page, "If TRUE, missing values in the data are put last; if FALSE, they are put first; if NA, they are removed". A vector of (NA,NA,TRUE)[[i]] is passed into the na.last argument indicating that for the first and second rows NA.last = NA (so NAs are removed from the row when sorted), and the third row na.last = True (NA is put last in the vector after sorting). This means that in the inner loop which iterates over the positions...
+Tough one to get my head around. What I believe the code is supposed to do is creating a 3x3 matrix from the vector of values and inputting it into the matrix by rows. It then goes into a outer for loop that iterates over each row (as diam() results in row x column and we select the 1st of the two with [[1]]). For each row it attempts to sort the values in ascending order and includes the na.last argument which dictates how to handle NA values in the vector. Per the help page, "If TRUE, missing values in the data are put last; if FALSE, they are put first; if NA, they are removed". A vector of (NA,NA,TRUE)[[i]] is passed into the na.last argument indicating that for the first and second rows na.last = NA (so NAs are removed from the row when sorted), and the third row na.last = True (NA is put last in the vector after sorting). Moving to the inner loop, which iterates over the values in each [i] row except for the last value, it checks to see if the value of that position is equal to the value of the next position in the same row (hence the -1 or the last value would be trying to compare to an index out of range). If the values are equal it prints the row number, column index position, and the duplicate value.
+
+The issue we are getting running this code as depicted, is that in the third row na.last=T, so the NA remains in the vector to be iterated upon in the inner loop, and therefore is passed into the `mm[[j]]==mm[j+i]` equation. Because the value is missing, one cannot determine whether the value adjacent to it (7) is equal or not because the NA value is missing. To fix this, we can change the sort function to look like this `sort(m[i,],na.last=NA)`
+
+**c.**
+```{r}
+1:3 * 5:7
+1:3 %*% 5:7
+1:3 %*% t(5:7)
+```
+The first line performs element-wise multiplication with `*`, so we end up with a vector.
+The second line uses matrix multiplication, and the arguments are both vectors of the same length, therefore it returns the inner product (dot product), and does so as a matrix. This means it performs element-wise multiplication, then adds the products together. 
+The last line is another example of matrix multiplication. I remember from the notes that matrices are stored internally as column-major order vectors. Therefore when the second vector is transposed, it promotes it to a row vector. Now we result in a matrix where the first row is the row vector multiplied by the first value in the column vector `(5:7 *3)`, the second row is the row vector multiplied by the second value in the column vector `(5:7 * 2)`, and the last row is the row vector multiplied by the third value in the column vector `(5:7 *3)`.
+
+**3. Practice dataset import/export a. Load into R dataset aaMap (available in Biobase), determine and describe data type of each column. b. Store, remove and recover it using save and load functions (use the help command ‘?’ and read documentation), demonstrate its removal and recovery, using ls function. c. Save it in a file using write.table function d. Open the file using text editor, add a column describing amino acid side chain charge at pH=7 (you can use wikipedia in order to get neutral/positive/negative charge annotations, or you can even come up with some random numbers, this exercise is about modifying the data and loading them back, not about amino acids), save file, import it back into R, demonstrate that column was added to the data frame.**
