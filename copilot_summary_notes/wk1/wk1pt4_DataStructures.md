@@ -248,7 +248,11 @@ GitHub Copilot: ### Summary Notes: Vectors in R
        yy <- c(3, -3, 5, -5, 4, 4)
        sort(yy)  # Sort in ascending order
        ## [1] -5 -3  3  4  4  5
-       yy[order(yy)]  # Sort using indices
+       rev(sort(yy)) # revery the order of the arguement
+       ## [1]  5  4  4  3 -3 -5
+       order(yy) # returns indices of the arguement in the order that would sort the vector (-5 is the 4th index, -3 is 2nd, etc.)
+       ## [1] 4 2 1 5 6 3
+       yy[order(yy)]  # Sort using indices (provides same output as using sort)
        ## [1] -5 -3  3  4  4  5
        ```
 
@@ -330,12 +334,12 @@ GitHub Copilot: ### Summary Notes: Vectors in R
      - `byrow = FALSE` (default): Fill by columns.
 
 3. **Matrix-Vector Dualism**:
-   - Matrices are stored internally as **vectors** (column-major order).
+   - Matrices are stored internally as **vectors** (column-major order - meaning c(1:3) = a single column whose rows would be 1, 2,3).
    - Operations between matrices and vectors are allowed, with **recycling** if needed.
    - Example:
      ```R
      y <- -1:2
-     m.new <- m + y  # Adds y to each column of m, recycling y
+     m.new <- m + y  # Adds y to each column of m, recycling y at each column
      ```
 
 4. **Accessing Matrix Elements**:
@@ -379,7 +383,6 @@ GitHub Copilot: ### Summary Notes: Vectors in R
 #### **Important Notes**
 - **Matrix-Vector Operations**: Be cautious when mixing matrices and vectors, as R may silently treat matrices as vectors.
 - **Recycling**: Shorter vectors are recycled to match the matrix dimensions during operations.
-- **Transpose**: Use `t()` to transpose a matrix (rows become columns and vice versa).
 
 #### **Examples for Practice**
 1. Create a 3x4 matrix filled by rows:

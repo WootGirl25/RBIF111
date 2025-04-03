@@ -1,0 +1,116 @@
+---
+title: "Week1 Homework"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+---
+Qn1. 25 points Using no other R functions besides sqrt (e.g. to calculate sum use a loop summing all elements from first to last) implement function my.sd calculating standard deviation for a numeric vector of arbitrary length and demonstrate that it produces exactly the same results as R function sd.
+
+Steps:
+1. create function
+2. check for NAs
+3. find mean
+4. find deviation for each data point (datapoint - mean)
+5. square each deviation
+6. find mean of pooled deviations (when calulating use len -1) = variance
+7. sqrt the variance
+8. test to compare to the std function
+
+```{r}
+my.sd <- function(x, rm.na = T) {
+  x.clean <- c() #initiate clean vector - without NAs
+  x.sum <- 0
+  x.len <- 0
+  for (xx in x) {
+    if (is.na(xx)) { #check for NAs
+      if (rm.na) {
+        next
+      } else {
+        return (NA)
+      }
+    } 
+    x.clean <- c(x.clean, xx) 
+    x.sum <- x.sum + xx #sum of all non na values
+    x.len <- x.len +1 # find length of vector minus NAs
+  }
+  x.mean <- x.sum / x.len
+  x.devsq <- (x.clean -x.mean)^2 #subtract mean from each value in vector and square
+  
+  x.devsq.sum <- 0 
+  for (xd in x.devsq) x.devsq.sum <- x.devsq.sum + xd
+  
+  x.var = x.devsq.sum / (x.len -1) #-1 for sample sd
+  x.std <- sqrt(x.var)
+  
+  #list(x.clean, x.len, x.sum, x.mean, x.devsq, x.devsq.sum, x.var, x.std)
+  x.std
+}
+
+v <- c(1,2,4,9, NA)
+my.sd(v)
+sd(v, na.rm=T)
+```
+**2.Execute and explain the results of the following three pieces of R code. For each of them – start R afresh, copy and paste code in R command prompt. Explain in detail what the code does, what is printed (or not printed) and why.**
+**a.**
+```{r}
+x<-sin(1);print(x);y<-Sin(2);print(y)
+x<-sin(1)
+print(x)
+y<-Sin(2)
+print(y)
+```
+When executed:
+```{r}
+x<-sin(1);print(x);y<-Sin(2);print(y)
+x<-sin(1)
+print(x)
+y<-Sin(2)
+print(y)
+```
+
+This code takes the sin of 1, assigns it to the variable x, prints it to the screen then calls an error. This error occurs in the assignment of Sin(2) to variable y. the correct function is sin() not Sin() and this typo has therefore stalled the rest of the code from running. Looking at the remainder of this code, the 1st line completes the same task as lines 2-5 put toghether, it has just been condensed into 1 line as `;` can be used to separate commands.
+
+**b.**
+```{r}
+m <- matrix(c(1:5,NA,7,7,NA),
+nrow=3,ncol=3,byrow=T)
+print(m)
+for ( i in 1:dim(m)[[1]] ) {
+ mm <- sort(m[i,],na.last=c(NA,NA,T)[[i]])
+ for ( j in 1:(length(mm)-1) ) {
+ if ( mm[[j]]==mm[[j+1]] ) {
+ cat(i,j,mm[[j]],fill=T)
+ }
+ }
+}
+```
+
+When executed:
+```{r}
+m <- matrix(c(1:5,NA,7,7,NA),
+nrow=3,ncol=3,byrow=T)
+print(m)
+for ( i in 1:dim(m)[[1]] ) {
+ mm <- sort(m[i,],na.last=c(NA,NA,T)[[i]])
+ for ( j in 1:(length(mm)-1) ) {
+ if ( mm[[j]]==mm[[j+1]] ) {
+ cat(i,j,mm[[j]],fill=T)
+ }
+ }
+}
+```
+Tough one to get my head around. The code is creating a 3x3 matrix from the vector of values and inputting it into the matrix by rows. It then goes into a outer for loop that iterates over each row (as diam() results in row x column and we select the 1st of the two with [[1]]). For each row it attempts to sort the values in ascending order and includes the na.last argument which dictates how to handle NA values in the vector. Per the help page, "If TRUE, missing values in the data are put last; if FALSE, they are put first; if NA, they are removed". A vector of (NA,NA,TRUE)[[i]] is passed into the na.last argument indicating that for the first and second rows NA.last = NA (so NAs are removed from the row when sorted), and the third row na.last = True (NA is put last in the vector after sorting). This means that in the inner loop which iterates over the positions...

@@ -1,0 +1,101 @@
+---
+title: Rmarkdown introduction
+author: "Author: Brendan Gongol"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    fig_caption: yes
+    code_folding: hide
+    number_sections: true
+  pdf_document:
+    toc: true
+vignette: >
+    %\VignetteIndexEntry{Text}
+    %\usepackage[utf8]{inputenc}
+    %\VignetteEngine{knitr::rmarkdown}
+fontsize: 15pt
+editor_options: 
+  chunk_output_type: console
+---
+
+<style>
+pre code, pre, code {
+  white-space: pre !important;
+  overflow-x: auto !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+}
+body {
+text-align: justify}
+</style>
+
+
+# Header 1
+
+## Header 2
+
+### Header 3
+
+#### Header 4
+
+# Header 1
+
+
+- list 1
+- list 2
+- list 3
+
+*italics* <br>
+**bold** <br>
+`emphasize`
+
+Adding a formula centered in the page:
+$$A=C+B$$
+
+Adding a formula within the text: $A=C+B$
+
+
+the following is an example code chunk: 
+
+
+```{r name1, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source = "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+#### Do not install packages in the code elements of the document
+# install.packages("ggplot2")
+# if (!require("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("ALL")
+
+#### loading packages is OK.
+library(ggplot2)
+```
+
+
+
+```{r, eval=TRUE, echo=TRUE, message=FALSE, warning=FALSE, class.source = "fold-show", fig.height=5, fig.width=8, results='show', cache=FALSE}
+1:4
+plot(1:4)
+```
+
+
+
+executing `rmarkdown::render()` in the Console will knit the markdown file to a pdf or html document.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
