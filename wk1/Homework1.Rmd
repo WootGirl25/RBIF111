@@ -3,22 +3,8 @@ title: "Week1 Homework"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
-```{r}
-plot(cars)
-```
-
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
-
 ---
-Qn1. 25 points Using no other R functions besides sqrt (e.g. to calculate sum use a loop summing all elements from first to last) implement function my.sd calculating standard deviation for a numeric vector of arbitrary length and demonstrate that it produces exactly the same results as R function sd.
+**Qn1.Using no other R functions besides sqrt (e.g. to calculate sum use a loop summing all elements from first to last) implement function my.sd calculating standard deviation for a numeric vector of arbitrary length and demonstrate that it produces exactly the same results as R function sd.**
 
 Steps:
 1. create function
@@ -26,7 +12,7 @@ Steps:
 3. find mean
 4. find deviation for each data point (datapoint - mean)
 5. square each deviation
-6. find mean of pooled deviations (when calulating use len -1) = variance
+6. find mean of pooled deviations (when calculating use len -1) = variance
 7. sqrt the variance
 8. test to compare to the std function
 
@@ -153,4 +139,32 @@ We can see that the first 4 columns are factors - this makes sense as they are c
 ls()
 save(aaMap,file = "my.aaMap.rda")
 ```
+```{r}
+rm(aaMap)
+ls()
+
+```
+```{r}
+load("my.aaMap.rda")
+ls()
+```
+```{r}
+write.table(aaMap, "aatable.txt", quote=F, sep="\t", col.names=T, row.names=F)
+```
+
+```{r}
+updated.aaMap <- read.table("aatable2.txt", sep="\t", header=T)
+updated.aaMap[1:5,]
+sapply(updated.aaMap,class)
+```
+Change classes of cols 1:4,7
+```{r}
+updated.aaMap$name <- as.factor(updated.aaMap$name)
+updated.aaMap$let.1 <- as.factor(updated.aaMap$let.1)
+updated.aaMap$let.3 <- as.factor(updated.aaMap$let.3)
+updated.aaMap$scProp <- as.factor(updated.aaMap$scProp)
+updated.aaMap$charge <- as.factor(updated.aaMap$charge)
+sapply(updated.aaMap,class)
+```
+**4. Calculate and visualize some basic properties of gene expression levels in ALL dataset. Remember that function exprs returns a matrix of gene expression levels (~13K genes) for each patient (>100 patients) in the sample.**
 
