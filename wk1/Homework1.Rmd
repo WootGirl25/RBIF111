@@ -168,3 +168,14 @@ sapply(updated.aaMap,class)
 ```
 **4. Calculate and visualize some basic properties of gene expression levels in ALL dataset. Remember that function exprs returns a matrix of gene expression levels (~13K genes) for each patient (>100 patients) in the sample.**
 
+**a. Calculate average gene expression level for each patient. Plot them using the following visualizations: i. Histogram ii. Boxplot iii. Stripchart iv. Stem-and-leaf v. Dotchart vi. Sorted in ascending order**
+
+```{r}
+library(ALL)
+data(ALL)
+clinical <- pData(ALL)
+geneEx <- exprs(ALL)
+
+pt.mean.expn <- colMeans(geneEx)
+```
+
