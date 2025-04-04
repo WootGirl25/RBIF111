@@ -128,3 +128,29 @@ The second line uses matrix multiplication, and the arguments are both vectors o
 The last line is another example of matrix multiplication. I remember from the notes that matrices are stored internally as column-major order vectors. Therefore when the second vector is transposed, it promotes it to a row vector. Now we result in a matrix where the first row is the row vector multiplied by the first value in the column vector `(5:7 *3)`, the second row is the row vector multiplied by the second value in the column vector `(5:7 * 2)`, and the last row is the row vector multiplied by the third value in the column vector `(5:7 *3)`.
 
 **3. Practice dataset import/export a. Load into R dataset aaMap (available in Biobase), determine and describe data type of each column. b. Store, remove and recover it using save and load functions (use the help command ‘?’ and read documentation), demonstrate its removal and recovery, using ls function. c. Save it in a file using write.table function d. Open the file using text editor, add a column describing amino acid side chain charge at pH=7 (you can use wikipedia in order to get neutral/positive/negative charge annotations, or you can even come up with some random numbers, this exercise is about modifying the data and loading them back, not about amino acids), save file, import it back into R, demonstrate that column was added to the data frame.**
+
+```{r}
+library(Biobase)
+data("aaMap")
+colnames(aaMap)
+dim(aaMap)
+aaMap[1:5,]
+
+class(aaMap)
+unlist(lapply(aaMap[,1:6],class))
+```
+The aaMap dataset from Biobase is a dataframe with 20 rows and 6 columns. Each row is an amino acid and the column names are listed above. Looking at the help page I got some more information and the descriptors of the columns are as follows:
+name: amino acid name
+let.1: one-letter code
+let.3: three-letter code
+scProp: side chain property at pH 7 (polar/nonpolar)
+hyPhilic: side chain is hydrophilic at pH 7
+acidic: side chain is acidic at pH 7
+
+We can see that the first 4 columns are factors - this makes sense as they are categorical variables, and the data they hold is finite and fixed. At first I thought that the name column should be a character class, but considering there are also a fixed and finite number of amino acids, that factor is also appropriate. Columns 5 and 6 have logical classes as their columns are asking specific questions (is the side chain hydrophilic at pH 7? Is the side chain acidic at pH 7?). 
+
+```{r}
+ls()
+save(aaMap,file = "my.aaMap.rda")
+```
+
