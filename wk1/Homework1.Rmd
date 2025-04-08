@@ -176,6 +176,65 @@ data(ALL)
 clinical <- pData(ALL)
 geneEx <- exprs(ALL)
 
-pt.mean.expn <- colMeans(geneEx)
+```
+
+```{r}
+dim(geneEx)
+geneEx[1:5,1:5]
+```
+
+The exprs() help page says "Matrix with rows representing features and columns samples", therefore the patients are our columns, and genes are rows. Given this we can find the mean of each column (total 128) using vectors (as vectors are column-major order in matrices).
+
+```{r}
+patient.means <- sapply(1:128, function(i) mean(geneEx[,i]))
+patient.means[1:20] #preview results
+```
+```{r}
+hist(patient.means, main=paste("Histogram of Average Patient Gene Expression Levels"), xlab ="Average Expression Levels")
+```
+
+```{r}
+boxplot(patient.means, ylab="Patient Average Expression Levels")
+```
+
+```{r}
+stripchart(patient.means,method = "jitter", xlab="Patient Average Expression Levels")
+```
+
+```{r}
+stem(patient.means)
+dotchart(patient.means, xlab="Patient Average Expression Levels")
+```
+
+```{r}
+plot(sort(patient.means),type="p", main="Dot Plot of Average Patient Gene Expression Levels", ylab = "Average Expression Levels", xlab="Patients")
+```
+**b. Calculate average gene expression levels for each gene. Plot them using: i. Histogram ii. Boxplot iii. sorted in the ascending order**
+
+```{r}
+
+# gene.means <- sapply(1:12625, function(i) mean(t(geneEx)[,i])) 
+gene.means <- rowMeans(geneEx)
+#preview
+gene.means[1:10]
+hist(gene.means, main=paste("Histogram of Average Gene Expression Levels, per Gene"), xlab ="Average Expression Levels")
+```
+Originally thought to transpose the matrix then use sapply() to the columns, but given this results in 12625 columns it was too inefficient. Found the rowMeans() function through a quick google search.
+```{r}
+boxplot(gene.means, ylab="Average Expression Levels")
+```
+
+```{r}
+plot(sort(gene.means),type="p", main="Dot Plot of Average Gene Expression Levels, per Gene", ylab = "Average Expression Levels", xlab="Gene index")
+```
+**For average gene expression per patient calculate the following measures of center and spread – explain results obtained: i. Mean ii. Median iii. Standard deviation (sd) iv. Median absolute deviation (mad) v. Interquartile range vi. Five number summary (read the docs for, and use fivenum() function) vii. Five number summary using quantile function**
+```{r}
+mean(patient.means)
+median(patient.means)
+sd(patient.means)
+mad(patient.means)
+IQR(patient.means)
+fivenum(patient.means)
+quantile(patient.means)
 ```
 
