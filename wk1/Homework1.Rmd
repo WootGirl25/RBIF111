@@ -1,20 +1,27 @@
 ---
 title: "Week1 Homework"
-output: html_notebook
+author: 'Author: Laura Wooten'
+date: 'Date: 08 April 2025'
+output:
+  html_document:
+    df_print: paged
+fontsize: 15pt
+editor_options:
+  chunk_output_type: inline
 ---
 
 ---
-**Qn1.Using no other R functions besides sqrt (e.g. to calculate sum use a loop summing all elements from first to last) implement function my.sd calculating standard deviation for a numeric vector of arbitrary length and demonstrate that it produces exactly the same results as R function sd.**
+**1. Using no other R functions besides sqrt (e.g. to calculate sum use a loop summing all elements from first to last) implement function my.sd calculating standard deviation for a numeric vector of arbitrary length and demonstrate that it produces exactly the same results as R function sd.**
 
-Steps:
-1. create function
-2. check for NAs
-3. find mean
-4. find deviation for each data point (datapoint - mean)
-5. square each deviation
-6. find mean of pooled deviations (when calculating use len -1) = variance
-7. sqrt the variance
-8. test to compare to the std function
+Steps:  
+- create function  
+- check for NAs  
+- find mean  
+- find deviation for each data point (datapoint - mean)  
+- square each deviation  
+- find mean of pooled deviations (when calculating use len -1) = variance  
+- sqrt the variance  
+- test to compare to the std function  
 
 ```{r}
 my.sd <- function(x, rm.na = T) {
@@ -50,7 +57,7 @@ v <- c(1,2,4,9, NA)
 my.sd(v)
 sd(v, na.rm=T)
 ```
-**2.Execute and explain the results of the following three pieces of R code. For each of them – start R afresh, copy and paste code in R command prompt. Explain in detail what the code does, what is printed (or not printed) and why.**
+**2.Execute and explain the results of the following three pieces of R code. For each of them – start R afresh, copy and paste code in R command prompt. Explain in detail what the code does, what is printed (or not printed) and why.**  
 **a.**
 ```{r}
 x<-sin(1);print(x);y<-Sin(2);print(y)
@@ -60,7 +67,7 @@ y<-Sin(2)
 print(y)
 ```
 When executed:
-```{r}
+```{r, error=TRUE}
 x<-sin(1);print(x);y<-Sin(2);print(y)
 x<-sin(1)
 print(x)
@@ -86,7 +93,7 @@ for ( i in 1:dim(m)[[1]] ) {
 ```
 
 When executed:
-```{r}
+```{r, errpr=TRUE}
 m <- matrix(c(1:5,NA,7,7,NA),
 nrow=3,ncol=3,byrow=T)
 print(m)
@@ -117,6 +124,8 @@ The last line is another example of matrix multiplication. I remember from the n
 
 ```{r}
 library(Biobase)
+```
+```{r}
 data("aaMap")
 colnames(aaMap)
 dim(aaMap)
@@ -227,14 +236,114 @@ boxplot(gene.means, ylab="Average Expression Levels")
 ```{r}
 plot(sort(gene.means),type="p", main="Dot Plot of Average Gene Expression Levels, per Gene", ylab = "Average Expression Levels", xlab="Gene index")
 ```
-**For average gene expression per patient calculate the following measures of center and spread – explain results obtained: i. Mean ii. Median iii. Standard deviation (sd) iv. Median absolute deviation (mad) v. Interquartile range vi. Five number summary (read the docs for, and use fivenum() function) vii. Five number summary using quantile function**
+**c. For average gene expression per patient calculate the following measures of center and spread – explain results obtained: i. Mean ii. Median iii. Standard deviation (sd) iv. Median absolute deviation (mad) v. Interquartile range vi. Five number summary (read the docs for, and use fivenum() function) vii. Five number summary using quantile function**
 ```{r}
-mean(patient.means)
-median(patient.means)
-sd(patient.means)
-mad(patient.means)
-IQR(patient.means)
-fivenum(patient.means)
-quantile(patient.means)
+mean.value <- mean(patient.means)
+med.value <- median(patient.means)
+sd.value <- sd(patient.means)
+mad.value <- mad(patient.means)
+iqr.value <- IQR(patient.means)
+fn.value <- fivenum(patient.means)
+quant.value <- quantile(patient.means)
+
+cat("Mean:", mean.value, "\n",
+    "Median:", med.value, "\n",
+    "Standard Deviation:", sd.value, "\n",
+    "Median Absolute Deviation:", mad.value, "\n",
+    "Interquartile Range:", iqr.value, "\n",
+    "Five Number Summary (fivenum):", fn.value, "\n",
+    "Five Number Summary (quantile):", quant.value, "\n")
+
 ```
+The average gene expression level across all patients is 5.624988. The middle value of all gene expression values in 5.626497 - this means that half of the patients have average expression levels below this number. The standard deviation measures the amount of variation from the mean. In this case the SD is 0.0226, this is a very small number indicating that gene expression levels across the sample are all very close to the mean. The MAD is another measurement to assess variation across the data, however it is less sensitive to outliers as it uses the median instead of the mean to calculate variation. The IQR measures the spread of the central 50% of data, in this case between (5.62-0.028) - (5.62 + 0.028). The fivenum() and quantile() functions both give an overview of the distribution of the data, but they use different methods to calculate the quantiles - fivenum() divides the data into four equal parts, while quantile() uses interpolation to calculate the quantiles. 
+
+**d. For average gene expression per gene calculate the same measures of center and spread as above – explain results obtained.**
+```{r}
+mean.g <- mean(gene.means)
+med.g <- median(gene.means)
+sd.g <- sd(gene.means)
+mad.g <- mad(gene.means)
+iqr.g <- IQR(gene.means)
+fn.g <- fivenum(gene.means)
+quant.g <- quantile(gene.means)
+
+cat("Mean:", mean.g, "\n",
+    "Median:", med.g, "\n",
+    "Standard Deviation:", sd.g, "\n",
+    "Median Absolute Deviation:", mad.g, "\n",
+    "Interquartile Range:", iqr.g, "\n",
+    "Five Number Summary (fivenum):", fn.g, "\n",
+    "Five Number Summary (quantile):", quant.g, "\n")
+```
+Like with the average patient expression levels, the mean of average gene expression level is 5.624988, however the middle value when all gene average expression levels are ordered is slightly lower at 5.49578. The standard deviation and MAD are also larger in this analysis, indicating that there is greater variation in expression levels per gene then there is per patient. The middle 50% of average gene expression levels fall between 4.17- 6.80, and the lowest and highest average expression levels of genes are 2.59 and 13.57, respectively. 
+
+**e. Find genes with the highest and the lowest expression levels across patients – capture their names and characteristic expression levels. For this portion of the question, you could look either for genes with lowest/highest average expression or for the ones with lowest/highest single expression measurement across all patients. However, the average expression level is more biologically meaningful, as a single observation is more likely to be an error/outlier. Next, Calculate for each of them the above measures of center and spread across patients. Plot distributions of their expression levels across patients using all visualization techniques practiced above.**
+
+```{r}
+lowest.gene.level <- quant.g[1]; lowest.gene.level
+highest.gene.level <- quant.g[5]; highest.gene.level
+
+#find which gene correlates to these averages from gene.means vector
+
+lowest.gene <- names(gene.means[lowest.gene.level]); lowest.gene
+highest.gene <- names(gene.means[highest.gene.level]); highest.gene
+
+```
+```{r}
+#input this into geneEx matrix, find patient data for each gene
+
+lg.patients <- geneEx[lowest.gene,] #row lowest gene, all columns
+hg.patients <- geneEx[highest.gene,] #select row highest gene, all columns
+```
+
+To create summary statistics and visualizations of each gene, I'll attempt to create a function that I can use each vector as an argument.
+```{r}
+stats.and.vis <- function(vec, gene.name){
+  #create inner function to calc summary stats
+  calc.stats <- function(vec) {
+    stats <- list(
+      mean = mean(vec),
+      median = median(vec),
+      sd = sd(vec),
+      mad = mad(vec),
+      iqr = IQR(vec),
+      five.num.summary = fivenum(vec),
+      quantile.summary = quantile(vec)
+    )
+    return(stats)
+  }
+  #call calc.stats and print 
+  stats <- calc.stats(vec)
+  cat("Statistics for ", gene.name, ": \n")
+  print(stats)
+    
+  #plot distributions
+  hist(vec, main=paste("Histogram of ", gene.name, " Expression Levels across Patients"), xlab="Expression level")
+  boxplot(vec, main=paste("Boxplot of ", gene.name, " Expression Levels across Patients"))
+  stripchart(vec, main=paste("Stripchart of ", gene.name, " Expression Levels across Patients"),method = "jitter")
+  stem(vec)
+  dotchart(vec, main=paste("Dot chart of ", gene.name, " Expression Levels across Patients"))
+  plot(sort(vec),type="p", main=paste("Ordered Dot Plot of ", gene.name, " Expression Levels across Patients"), ylab = "Expression Level", xlab="Patients")
+  
+}
+```
+
+Call function for the lowest and highest average expression genes.  
+Lowest (1001_at):
+```{r}
+stats.and.vis(lg.patients, lowest.gene)
+```
+
+Highest (1011_s_at):
+```{r}
+stats.and.vis(hg.patients, highest.gene)
+```
+**f. Qualitatively compare distributions of mean gene expression levels per gene and per patient. Describe results of such comparison in plain English.**
+
+Between the statistics and visualizations of the two genes, the obvious difference is that the mean and median of 1011_a_at are higher than those of 1001_at. This is completely expected as I pulled these genes from the initial matrix as the highest and lowest averagely expressed genes across patients from the ALL dataset. The variance and distribution of 1011_a_at are greater and more spread out, with a higher standard deviation and interquartile range, which indicates there are more diverse expression levels among patients compared to 1001_at, which is tightly packed. This means that the expression of 1001_at is fairly consistent among patients despite different clinical traits of the disease.
+
+Something of note is that the high-range outliers of 1011_a_at seem to be grouped together (i.e., there are a few at the same approximate value) compared to 1001_at. This could indicate that there are subsets of patients that may share characteristics or clinical traits of the disease. Looking at the box plot, the outliers are closer to the whiskers in 1011_a_at, and the ordered dot plot has less of a gap in the curve. This may indicate that these high expression levels are not extreme anomalies but instead part of a broader pattern within the patient population. This is also demonstrated in the histograms of both; 1011_a_at shows a normal (bell curve) distribution, while 1001_at is left-skewed.
+
+If this analysis were to go one step further and integrate with the clinical data present in the ALL dataset, it could reveal correlations between gene expression levels and specific clinical outcomes or patient characteristics. This could help identify potential biomarkers for prognosis or targets for personalized treatment strategies in ALL patients.
+
 
