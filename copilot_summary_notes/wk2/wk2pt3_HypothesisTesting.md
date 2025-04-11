@@ -49,9 +49,38 @@ We aim to visualize and understand the differences between two groups (e.g., mal
 
 ### **Key Observations:**
 - Male patients tend to have a lower median age compared to females.
-- The question arises: Is this difference real, or could it be due to random sampling?
-
+- The question arises: Is this difference real, or could it be due to random sampling? *See below for clarification*
 ---
+> The boxplot in this case is pulling from **all available data** in the dataset, so there is no random sampling happening at this stage. Let me clarify what "random sampling variability" refers to in this context and why it is relevant.
+
+> ### **What is Random Sampling Variability?**
+Random sampling variability refers to the natural fluctuations that occur when you take **samples** from a population. Even if two groups come from the same underlying population distribution, the specific values in each sample can differ due to randomness in the sampling process.
+
+For example:
+- If you randomly select 10 individuals from a population, the mean age of those 10 individuals might differ slightly from the true population mean.
+- If you take another random sample of 10 individuals, the mean age of this second sample might also differ from both the first sample and the population mean.
+
+This variability is what we call **random sampling variability**.
+
+> ### **How Does This Apply Here?**
+In the context of your dataset:
+1. The boxplot is created using **all available data** for male and female patients. At this stage, there is no random sampling involved because you're visualizing the entire dataset.
+2. However, the hypothesis testing process (e.g., resampling or t-tests) involves simulating or analyzing what would happen if we repeatedly drew **random samples** from the same population. This is where random sampling variability comes into play.
+>
+> ### **Why Do We Care About Random Sampling Variability?**
+The goal of hypothesis testing is to determine whether the observed difference between two groups (e.g., male and female ages) is **real** or could simply be explained by random chance.
+>
+- If the two groups (male and female) come from the same population distribution, any observed difference in their means or medians could just be due to random sampling variability.
+- To test this, we simulate or analyze what differences we would expect to see **if the null hypothesis were true** (i.e., if the two groups come from the same distribution).
+>
+> ### **Key Point: The Role of Resampling**
+In the resampling experiment described in your notes:
+- We simulate random samples from the same distribution (e.g., all male ages) to model what random sampling variability would look like.
+- By comparing the observed difference (from the boxplot) to the simulated differences, we can determine whether the observed difference is unusually large (and thus likely real) or consistent with random chance.
+
+>
+---
+
 
 ## 3. Hypothesis Testing
 ### **What are we trying to achieve?**
@@ -93,6 +122,8 @@ A method to test the null hypothesis by simulating random samples from the same 
 - If the observed difference is rare (e.g., in the extreme tail of the simulated distribution), it suggests a real difference.
 - If the observed difference is common, it could be due to chance.
 
+**NOTE**
+> The lecture notes provide a better example. Also highlight a key point: "The procedure described above represents brute force re-sampling. In our case, however, there is one problem: we do not have the underlying distribution we could re-sample from. We can try solving this problem in a few different ways. First, we could assume that underlying distribution has specific functional form, e.g. Gaussian. From looking at the empirical distribution of the sample that we have (a histogram in the right panel in the figure above), it does not look like a very good assumption: the histogram does not look very similar to the bell-shaped Gaussian distribution. We could try this nonetheless in the hope that while not very accurate, our estimates would still give us a reasonable approximation. Besides, as we will learn soon, if we do assume Gaussian underlying distribution, we do not really need to run brute-force re-sampling, but can instead use analytical machinery of the t-test. The second possible approach would be to try to model the underlying distribution using empirical distribution of the sample we have."
 ---
 
 ### 3.2 t-Test
@@ -192,6 +223,7 @@ Let me know if you'd like further clarification or additional examples!
   ```
   - `n1` and `n2` are the sample sizes of the two groups.
   - `R1` and `R2` are the sums of the ranks for the two groups.
+> A rank in statistics refers to the position of a value in an ordered list. When performing rank-based tests (like the Mann-Whitney U test), the data values from both samples are combined and sorted in ascending order, and each value is assigned a rank based on its position in this sorted list.
 
 #### **Assumptions**:
 1. The two groups being compared are **independent**.
