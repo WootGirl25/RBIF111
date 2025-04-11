@@ -1,0 +1,38 @@
+---
+title: Week 2 Homework
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: html_notebook
+---
+
+> For this homework assignment, you will need to download a data set from the UCI machine learning repository. Separate the data set you downloaded into two groups by the outcome variable that is being studied. For most of the data sets in the UCR machine learning repository, most of the time, this will be categorical variable in the “last column” in the data set. If more than one outcome was studied, use the one with the greatest number of records. Then do the following:
+
+```{r}
+library(ucimlrepo)
+
+```
+
+
+> 1. 20 points Perform normality tests for each data feature. At a minimum, these normality tests should include a Shapiro-Wilks normality test along with a qq-plot. Describe the results of these tests.
+
+```{r}
+shapiro.test(df$column)
+
+# create qq plot of 1st column in df
+qqnorm(df[,1], main= "QQ plot of column")
+qqline(df[,1], col= "red")
+
+```
+
+
+> 2. 20 points Create a box plot with each column of the data set on the x-axis, the value of the columns on the y-axis, and colored by the outcome that is being studied.
+
+```{r}
+#I think?
+boxplot(df$column~df$column2~df$column3~etc, ylab = "value name")
+```
+
+
+> 3. 20 points Perform hypothesis tests comparing paired columns of the partitioned data set. You will need to determine which hypothesis test to perform based on your normality test results.
+
+> 4. 40 points Select a column of the data set with the greatest variance and overlap between outcome groups. Take a random sampling of the data with different sample sizes (say, 10, 15, 20 samples) from both groups. Then perform a hypothesis test between both groups and retain the p-value. Repeat this process 1000 times. For each iteration, save the p-values in a vector called Pvals. Then plot the distribution of significance tests for each re-sampling. Repeat this process with the column with the least variance and overlap between outcome groups. Explain the results and the differences between both simulations.
