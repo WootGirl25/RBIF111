@@ -7,29 +7,110 @@ output: html_notebook
 
 > For this homework assignment, you will need to download a data set from the UCI machine learning repository. Separate the data set you downloaded into two groups by the outcome variable that is being studied. For most of the data sets in the UCR machine learning repository, most of the time, this will be categorical variable in the “last column” in the data set. If more than one outcome was studied, use the one with the greatest number of records. Then do the following:
 
+UCI machiene learning repo site was down - using Maternal Health Risk Data Set that you sent me via email.
+Steps:
+1. read in csv file
+2. preview data, how many levels/outcomes for variable being explored? 
+3. Of the 3 levels, which has the greatest # records
+4. Create 2 groups: low-risk and (high + mid risk)
 ```{r}
-library(ucimlrepo)
+MatRisk <- read.csv("Maternal Health Risk Data Set.csv")
+#preivew
+MatRisk[1:5,]
+class(MatRisk)
+unlist(lapply(MatRisk[,1:7],class))
+#Change $RiskLevel from chr to factor so can assess levels
+MatRisk$RiskLevel <- as.factor(MatRisk$RiskLevel)
+class(MatRisk$RiskLevel)
+#check levels of  
+risk.levels <- levels(MatRisk$RiskLevel); risk.levels
+```
+```{r}
+#which level has greatest # records?
+max.obs <- 0
+most.frequent <- NULL
 
+for (i in risk.levels) {
+  Nobs <- sum(MatRisk$RiskLevel == i)  # Count the # of observations for each level
+  if (Nobs > max.obs) {
+    max.obs <- Nobs
+    most.frequent <- i  # Store the level with the greatest frequency
+  }
+}
+print(paste('Level with greatest number of records:', most.frequent))
+```
+```{r}
+#Separate into two groups
+lowrisk <- MatRisk[MatRisk$RiskLevel == 'low risk',]; #select all columns for rows whose risklevel is low
+otherrisk <- MatRisk[MatRisk$RiskLevel != 'low risk',]; #select all other rows
+rm(list=setdiff(ls(), c("lowrisk", "otherrisk")))
 ```
 
 
 > 1. 20 points Perform normality tests for each data feature. At a minimum, these normality tests should include a Shapiro-Wilks normality test along with a qq-plot. Describe the results of these tests.
 
-```{r}
-shapiro.test(df$column)
-
-# create qq plot of 1st column in df
-qqnorm(df[,1], main= "QQ plot of column")
-qqline(df[,1], col= "red")
+```{r eval=FALSE, include=FALSE}
+for (feature.name in names(lowrisk)[1:6]){ #column 7 is non numerical - leave out
+  feature.vec <- lowrisk[[feature.name]] #column as a vector
+  test <- shapiro.test(feature.vec)
+  if(test$p.value < 0.05){
+    distribution <- "Not normally distributed"
+  }else{
+    distribution <- "Normally distributed"
+  }
+  print(paste(feature.name, ":", distribution))
+  
+  #plot qq
+  qqnorm(feature.vec, main= paste('QQ-Plot of', feature.name))
+  qqline(feature.vec, col= "blue")
+  
+  #histogram
+  hist(feature.vec, main = paste('Histogram of', feature.name))
+}
+# shapiro.test(df$column)
+# 
+# # create qq plot of 1st column in df
+# qqnorm(df[,1], main= "QQ plot of column")
+# qqline(df[,1], col= "red")
 
 ```
 
+```{r}
+# First loop: Print only textual results
+for (feature.name in names(lowrisk)[1:6]){
+  feature.vec <- lowrisk[[feature.name]]
+  test <- shapiro.test(feature.vec)
+  
+  if(test$p.value < 0.05){
+    distribution <- "Not normally distributed"
+  }else{
+    distribution <- "Normally distributed"
+  }
+  
+  print(paste(feature.name, ":", distribution))
+}
 
+# Second loop: Generate plots
+for (feature.name in names(lowrisk)[1:6]){
+  feature.vec <- lowrisk[[feature.name]]
+  
+  # QQ-plot
+  qqnorm(feature.vec, main = paste("QQ-Plot of", feature.name))
+  qqline(feature.vec, col = "blue")
+  
+  # Histogram
+  hist(feature.vec, main = paste("Histogram of", feature.name), xlab= "Recorded Value", col="lightblue", border= "white")
+}
+
+```
+**Discuss results**
+
+---
 > 2. 20 points Create a box plot with each column of the data set on the x-axis, the value of the columns on the y-axis, and colored by the outcome that is being studied.
 
 ```{r}
 #I think?
-boxplot(df$column~df$column2~df$column3~etc, ylab = "value name")
+boxplot(MatRisk$Age~MatRisk$RiskLevel, ylab = "value name")
 ```
 
 
