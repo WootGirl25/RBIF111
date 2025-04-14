@@ -9,10 +9,9 @@ output: html_notebook
 
 UCI machiene learning repo site was down - using Maternal Health Risk Data Set that you sent me via email.
 Steps:
-1. read in csv file
-2. preview data, how many levels/outcomes for variable being explored? 
-3. Of the 3 levels, which has the greatest # records
-4. Create 2 groups: low-risk and (high + mid risk)
+1. read in csv file  
+2. preview data, how many levels/outcomes for variable being explored?   
+3. Create 2 groups: low-risk and high risk 
 ```{r}
 MatRisk <- read.csv("Maternal Health Risk Data Set.csv")
 #preivew
@@ -25,8 +24,8 @@ class(MatRisk$RiskLevel)
 #check levels of  
 risk.levels <- levels(MatRisk$RiskLevel); risk.levels
 ```
-```{r}
-#which level has greatest # records?
+```{r eval=FALSE, include=FALSE}
+#which level has greatest # records? - dont need anymore
 max.obs <- 0
 most.frequent <- NULL
 
@@ -39,11 +38,12 @@ for (i in risk.levels) {
 }
 print(paste('Level with greatest number of records:', most.frequent))
 ```
+
 ```{r}
 #Separate into two groups
 lowrisk <- MatRisk[MatRisk$RiskLevel == 'low risk',]; #select all columns for rows whose risklevel is low
-otherrisk <- MatRisk[MatRisk$RiskLevel != 'low risk',]; #select all other rows
-rm(list=setdiff(ls(), c("lowrisk", "otherrisk")))
+highrisk <- MatRisk[MatRisk$RiskLevel == 'high risk',]; #select all other rows
+rm(list=setdiff(ls(), c("lowrisk", "highrisk")))
 ```
 
 
@@ -74,6 +74,41 @@ for (feature.name in names(lowrisk)[1:6]){ #column 7 is non numerical - leave ou
 # qqline(df[,1], col= "red")
 
 ```
+I was confused as to whether or not to implement this using the entire data set or the partitioned dataset, so I did both just to see the differences. 
+```{r}
+#using entire dataset
+# First loop: Print only textual results
+for (feature.name in names(MatRisk)[1:6]){
+  feature.vec <- MatRisk[[feature.name]]
+  test <- shapiro.test(feature.vec)
+  
+  if(test$p.value < 0.05){
+    distribution <- "Not normally distributed"
+  }else{
+    distribution <- "Normally distributed"
+  }
+  
+  print(paste(feature.name, ":", distribution))
+}
+
+# Second loop: Generate plots
+
+for (feature.name in names(MatRisk)[1:6]){
+  feature.vec <- MatRisk[[feature.name]]
+  
+  par(mfrow = c(1, 2)) #plot side by side
+  # QQ-plot
+  qqnorm(feature.vec, main = paste("QQ-Plot of", feature.name))
+  qqline(feature.vec, col = "blue")
+  
+  # Histogram
+  hist(feature.vec, main = paste("Histogram of", feature.name), xlab= "Recorded Value", col="lightblue", border= "white")
+  
+  
+  
+}
+```
+
 
 ```{r}
 # First loop: Print only textual results
@@ -91,29 +126,66 @@ for (feature.name in names(lowrisk)[1:6]){
 }
 
 # Second loop: Generate plots
+
 for (feature.name in names(lowrisk)[1:6]){
   feature.vec <- lowrisk[[feature.name]]
   
+  par(mfrow = c(1, 2)) #plot side by side
   # QQ-plot
   qqnorm(feature.vec, main = paste("QQ-Plot of", feature.name))
   qqline(feature.vec, col = "blue")
   
   # Histogram
   hist(feature.vec, main = paste("Histogram of", feature.name), xlab= "Recorded Value", col="lightblue", border= "white")
+  
+  
+  
 }
+
+
 
 ```
 **Discuss results**
+The Shapiro tests for each column indicate that this data is not normalized, meaning there is more than just chance that the values are different between the outcome variables. When looking at the QQ-plots they don't follow the theoretical line that indicates a normal distribution, and histograms also don't appear to be in a bell shaped curve. The only plots that look like they could be close to a normal distribution is data for HeartRate, but the Shapiro tests still come back as p < 0.05, so we can assume that even though this one is close, to treat it as a non normalized data. 
 
 ---
 > 2. 20 points Create a box plot with each column of the data set on the x-axis, the value of the columns on the y-axis, and colored by the outcome that is being studied.
 
 ```{r}
 #I think?
-boxplot(MatRisk$Age~MatRisk$RiskLevel, ylab = "value name")
+#boxplot(highrisk$Age~highrisk$RiskLevel, ylab = "value name") Uses same df. my results have been separated into to data frames
+
+
+par(mfrow = c(2, 3)) # Arrange plots in a 2x3 grid
+
+boxplot(highrisk$Age, lowrisk$Age, names = c("High Risk", "Low Risk"), main = "Age by RiskLevel", col = c("red", "blue"))
+boxplot(highrisk$BS, lowrisk$BS, names = c("High Risk", "Low Risk"), main = "BS by RiskLevel", col = c("red", "blue"))
+boxplot(highrisk$BodyTemp, lowrisk$BodyTemp, names = c("High Risk", "Low Risk"), main = "BodyTemp by RiskLevel", col = c("red", "blue"))
+
+boxplot(highrisk$HeartRate, lowrisk$HeartRate, names = c("High Risk", "Low Risk"), main = "HeartRate by RiskLevel", col = c("red", "blue"))
+boxplot(highrisk$SystolicBP, lowrisk$SystolicBP, names = c("High Risk", "Low Risk"), main = "Systolic BP by RiskLevel", col = c("red", "blue"))
+boxplot(highrisk$DiastolicBP, lowrisk$DiastolicBP, names = c("High Risk", "Low Risk"), main = "DistolicBP by RiskLevel", col = c("red", "blue"))
+
+```
+Would have used the "~" sign to plot each column of data against RiskLevel like in the lecture notes (eg boxplot(MatRisk$Age ~ MatRisk$RiskLevel, col=c(red, blue))), but instructions said to separate the data into two distinct groups before continuing. These plots show that the mean for age, BS, SystolicBP and DistolicBP are all higer in the high risk variable than the lowrisk, and the variation for all plots in the high risk variable are wider than that of the low risk...
+
+> 3. 20 points Perform hypothesis tests comparing paired columns of the partitioned data set. You will need to determine which hypothesis test to perform based on your normality test results.
+
+The normality tests results indicate that data for each column is not parametrically distributed, therefore I have used a Mann-Whitney U Test to perform hypothesis testing for each column. My understanding of this question is that I need to compare each feature between outcome, for example does the Age of patients with high risk statistically differ to the distribution of ages of patients with low risk. To do this I have marked paired = False as an argument in the wilcox.test() function because the paired argument here is referring to measurements taken for that sample (ie that patient) which would be analyzing results from within the same row of a dataframe.
+
+```{r}
+for (feature.name in names(lowrisk)[1:6]){
+  hr.feature <- highrisk[[feature.name]]
+  lr.feature <- lowrisk[[feature.name]]
+  test.result <- wilcox.test(hr.feature, lr.feature, conf.int =T, paired = F, formula="lhs" )
+  
+  print(paste("Mann-Whitney U Test for:", feature.name))
+  print(test.result)
+  
+        
+}
 ```
 
 
-> 3. 20 points Perform hypothesis tests comparing paired columns of the partitioned data set. You will need to determine which hypothesis test to perform based on your normality test results.
 
 > 4. 40 points Select a column of the data set with the greatest variance and overlap between outcome groups. Take a random sampling of the data with different sample sizes (say, 10, 15, 20 samples) from both groups. Then perform a hypothesis test between both groups and retain the p-value. Repeat this process 1000 times. For each iteration, save the p-values in a vector called Pvals. Then plot the distribution of significance tests for each re-sampling. Repeat this process with the column with the least variance and overlap between outcome groups. Explain the results and the differences between both simulations.
