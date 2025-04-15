@@ -7,7 +7,7 @@ output: html_notebook
 
 > For this homework assignment, you will need to download a data set from the UCI machine learning repository. Separate the data set you downloaded into two groups by the outcome variable that is being studied. For most of the data sets in the UCR machine learning repository, most of the time, this will be categorical variable in the “last column” in the data set. If more than one outcome was studied, use the one with the greatest number of records. Then do the following:
 
-UCI machiene learning repo site was down - using Maternal Health Risk Data Set that you sent me via email.
+UCI machine learning repo site was down - using Maternal Health Risk Data Set that you sent me via email.
 Steps:
 1. read in csv file  
 2. preview data, how many levels/outcomes for variable being explored?   
@@ -74,7 +74,7 @@ for (feature.name in names(lowrisk)[1:6]){ #column 7 is non numerical - leave ou
 # qqline(df[,1], col= "red")
 
 ```
-I was confused as to whether or not to implement this using the entire data set or the partitioned dataset, so I did both just to see the differences. 
+I was confused as to whether or not to implement this using the entire data set or the partitioned data set, so I did both just to see the differences. 
 ```{r}
 #using entire dataset
 # First loop: Print only textual results
@@ -185,7 +185,36 @@ for (feature.name in names(lowrisk)[1:6]){
         
 }
 ```
-
+The p-values for each feature are less than 0.05, meaning that we reject the null hypothesis and accept the alternate hypothesis that states that the differences in each each feature by outcome do not come from the same distribution, and therefore are not occurring by chance. This indicates that there is legitimate reasoning behind the differences seen for each feature and they are somehow connected/specific to the outcome being studied, in this case maternal risk. 
 
 
 > 4. 40 points Select a column of the data set with the greatest variance and overlap between outcome groups. Take a random sampling of the data with different sample sizes (say, 10, 15, 20 samples) from both groups. Then perform a hypothesis test between both groups and retain the p-value. Repeat this process 1000 times. For each iteration, save the p-values in a vector called Pvals. Then plot the distribution of significance tests for each re-sampling. Repeat this process with the column with the least variance and overlap between outcome groups. Explain the results and the differences between both simulations.
+
+From the box plots, it appears that the column with the greatest variance and overlap is DiastolicBP. This is visually apparent looking at the overlap between the IQR and outliers, as well as the stretch of each in either direction to view the variance. However if we wanted to quantify the difference to know for sure we could use the following:
+
+Take a random sampling:
+```{r}
+set.seed(12)
+#create vectors
+h.diastolic <- highrisk$DiastolicBP
+l.diastolic <- lowrisk$DiastolicBP
+
+#select random samples
+h.10 <- sample(h.diastolic[!is.na(h.diastolic)], 10) #random sample of 10
+l.10 <- sample(l.diastolic[!is.na(l.diastolic)], 10) #random sample of 10
+h.15 <- sample(h.diastolic[!is.na(h.diastolic)], 15) #random sample of 15
+l.15 <- sample(l.diastolic[!is.na(l.diastolic)], 15) #random sample of 15
+h.20 <- sample(h.diastolic[!is.na(h.diastolic)], 20) #random sample of 20
+l.20 <- sample(l.diastolic[!is.na(l.diastolic)], 20) #random sample of 20
+
+#combine samples,
+```
+
+
+perform hypothesis test between groups:
+
+rpt 1000 times, save p-values
+
+Plot the distribution of p-values
+
+Repeat this with least variance and overlap column: 
