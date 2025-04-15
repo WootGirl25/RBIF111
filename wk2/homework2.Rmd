@@ -185,7 +185,7 @@ for (feature.name in names(lowrisk)[1:6]){
         
 }
 ```
-
+The p-values for each feature are less than 0.05, meaning that we reject the null hypothesis and accept the alternate hypothesis that states that the differences in each each feature by outcome do not come from the same distribution, and therefore are not occurring by chance. This indicates that there is legitimate reasoning behind the differences seen for each feature and they are somehow connected/specific to the outcome being studied, in this case maternal risk. 
 
 
 > 4. 40 points Select a column of the data set with the greatest variance and overlap between outcome groups. Take a random sampling of the data with different sample sizes (say, 10, 15, 20 samples) from both groups. Then perform a hypothesis test between both groups and retain the p-value. Repeat this process 1000 times. For each iteration, save the p-values in a vector called Pvals. Then plot the distribution of significance tests for each re-sampling. Repeat this process with the column with the least variance and overlap between outcome groups. Explain the results and the differences between both simulations.
