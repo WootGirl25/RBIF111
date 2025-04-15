@@ -167,7 +167,7 @@ boxplot(highrisk$SystolicBP, lowrisk$SystolicBP, names = c("High Risk", "Low Ris
 boxplot(highrisk$DiastolicBP, lowrisk$DiastolicBP, names = c("High Risk", "Low Risk"), main = "DistolicBP by RiskLevel", col = c("red", "blue"))
 
 ```
-Would have used the "~" sign to plot each column of data against RiskLevel like in the lecture notes (eg boxplot(MatRisk$Age ~ MatRisk$RiskLevel, col=c(red, blue))), but instructions said to separate the data into two distinct groups before continuing. These plots show that the mean for age, BS, SystolicBP and DistolicBP are all higer in the high risk variable than the lowrisk, and the variation for all plots in the high risk variable are wider than that of the low risk...
+Would have used the "~" sign to plot each column of data against RiskLevel like in the lecture notes (eg `boxplot(MatRisk$Age ~ MatRisk$RiskLevel, col=c(red, blue))`), but instructions said to separate the data into two distinct groups before continuing. The box plots reveal clear differences between the low-risk and high-risk maternal groups. The average values for age, blood sugar (BS), systolic blood pressure, and diastolic blood pressure are all higher for the high-risk group compared to the low-risk group. Moreover, the range of values is wider in the high-risk category, indicating more variability in these health measures. In contrast, mothers in the low-risk group consistently stay within healthy norms. This suggests that high-risk outcomes are influenced by a broader spectrum of factors. 
 
 > 3. 20 points Perform hypothesis tests comparing paired columns of the partitioned data set. You will need to determine which hypothesis test to perform based on your normality test results.
 
