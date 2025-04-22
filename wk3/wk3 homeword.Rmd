@@ -126,14 +126,42 @@ geodata[["GSE174777_series_matrix.txt.gz"]]@phenoData@data[["data_processing"]][
 5. overlay fitted values. 
 6. create either 2nd plot for residuals, or add points/lines of residuals on original plot.  
 ```{r}
-#age~geneexpr fitted to linear
-#plot(exprs_data[probe_p.min,],age, xlab="Gene Expression", ylab="Age", main= "Age~Gene Expression fitted with linear model")
-#points(min.df$G[!is.na(min.df$AGE)], predict(min.lm), col="red", pch=20)
+
 
 #fitted vs observed
-plot(fitted(min.lm), min.df[!is.na(min.df$AGE), "AGE"], main=paste("Plot of Fitted vs Observed Data (relationship b/w age and probe", probe_p.min), xlab="Fitted", ylab="Observed",)
+plot(fitted(min.lm), min.df[!is.na(min.df$AGE), "AGE"], main=paste("Plot of Fitted vs Observed Data from lm()", probe_p.min), xlab="Fitted", ylab="Observed",)
 abline(0,1,lty=2)
 
+#observed, fitted and residuals
+plot(
+  fitted(min.lm), 
+  min.df[!is.na(min.df$AGE), "AGE"], 
+  main = "Plot of Fitted vs Observed Data with Residuals", 
+  xlab = "Fitted Values", 
+  ylab = "Observed Values", 
+  pch = 16,      # Filled circles for observed points
+  col = "blue"   # Blue color for the observed points
+)
+# identity line
+abline(0, 1, lty = 2, col = "red")
+# Add residuals
+segments(
+  x0 = fitted(min.lm), 
+  y0 = fitted(min.lm), 
+  x1 = fitted(min.lm), 
+  y1 = min.df[!is.na(min.df$AGE), "AGE"], 
+  col = "gray", 
+  lty = 2
+)
+# add legend
+legend(
+  "topleft", 
+  legend = c("Observed", "Fitted = Observed", "Residuals"), 
+  col = c("blue", "red", "gray"), 
+  pch = c(16, NA, NA), 
+  lty = c(NA, 2, 2), 
+  cex = 0.8  # shrinks  legend text
+)
 #histogram of residuals
 hist(resid(min.lm), main="Histogram of Residuals from Linear Model", xlab="Residuals")
 
@@ -146,44 +174,6 @@ shapiro.test(resid(min.lm))
 plot(fitted(min.lm), resid(min.lm), xlab="Fitted", ylab="Residuals")
 abline(h=0, lty=2)
 
-#diagnostic plots
 
-plot(min.lm)
 
-```
-```{r}
-
-#observed, fitted and residuals
-plot(
-  fitted(min.lm), 
-  min.df[!is.na(min.df$AGE), "AGE"], 
-  main = "Plot of Fitted vs Observed Data with Residuals", 
-  xlab = "Fitted Values", 
-  ylab = "Observed Values", 
-  pch = 16,      # Filled circles for observed points
-  col = "blue"   # Blue color for the observed points
-)
-
-# Add the identity line
-abline(0, 1, lty = 2, col = "red")
-
-# Add residuals as vertical lines
-segments(
-  x0 = fitted(min.lm), 
-  y0 = fitted(min.lm), 
-  x1 = fitted(min.lm), 
-  y1 = min.df[!is.na(min.df$AGE), "AGE"], 
-  col = "gray", 
-  lty = 2
-)
-
-# Add a compact legend
-legend(
-  "topleft", 
-  legend = c("Observed", "Fitted = Observed", "Residuals"), 
-  col = c("blue", "red", "gray"), 
-  pch = c(16, NA, NA), 
-  lty = c(NA, 2, 2), 
-  cex = 0.8  # Shrinks the legend text
-)
 ```
