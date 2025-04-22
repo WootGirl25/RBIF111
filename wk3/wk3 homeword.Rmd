@@ -98,7 +98,9 @@ par(old.par)
 ```
 
 **Discussion**
+In this question, a linear model was fitted between age and the gene methylation level for each array probe. An ANOVA test was conducted on each model, and the resulting p-value was saved to a data frame alongside the probe name. A histogram of the p-values shows the distribution of p-values. We see a very high frequency of p-values under 0.05, which suggests that many probes have a significant association with age. However, there is a tail of higher p-values with a low frequency that stretches all the way to 1. This seems rational, as not all genes are expected to be associated with the dependent variable. 
 
+The QQ plots for the independent variable with the highest and lowest resulting p-value from ANOVA show deviations from their theoretical quantiles, particularly in the tails for each. The deviations are more extreme in the model with the highest p-value `max.lm`. This is to be expected, as the ANOVA results in a p-value of 1, meaning that the effect of gene expression measured by this probe is not significant and has no effect on the dependent variable (age). The fact that the model with the lowest p-value also shows deviation at the tail of the QQ plot may indicate that the residuals are not perfectly normally distributed, which is an assumption of linear regression. This means that the accuracy of our prediction lowers the further we move from the mean. It could also indicate that there are outliers in our data or represent noise. The ANOVA results for `min.lm` are 2.2e-16, suggesting that the expression of the gene measured by this probe has a meaningful relationship with the age of the naked mole rat. 
 
 > 2. 33 points Using the same data set as question 1, perform the same analysis except this time, perform a batch correction on the data set prior prior to fitting the models. Be sure an plot a boxplot of the pre- and post- batch corrected data sets for comparison purposes. Batch correction can be performed by modifying the DEseq2 code to export the normalized values with the following code: dds <- estimateSizeFactors(dds)
 counts(dds, normalized=TRUE) Note: If you’re using an RNAseq dataset, DEseq2 performs it’s own internal normalization. However, the raw data that is returned from the download function we have been using will return the non-normalized values. The normalized values can be retrieved by inserting the code illustrated above after the DESeqDataSetFromMatrix() function. If you’re using an array dataset, there is no standard regarding the data that is uploaded to GEO. Therefore, you’ll need to check the normalization of the dataset. If it is normalized, then simply describe how the analysis could be effected if the data was not normalized. If it is not normalized, you can use a variety of normalization methods including the normalizationBetweenArrays function in the limma package. Generate the same plots as described in question 2. Describe the results and how they compare to the results of question 1. Then discuss which approach produces “better” results and why. This portion of the question should include plots that validate your thoughts. Although boxplots are helpful, you are welcome to be creative here.
@@ -110,9 +112,12 @@ geodata[["GSE174777_series_matrix.txt.gz"]]@experimentData@other[["summary"]]
 geodata[["GSE174777_series_matrix.txt.gz"]]@phenoData@data[["data_processing"]][1]
 ```
 **Discussion**
-1. What is SeSaMe? Key points.  
-2. What to expect if data was not normalized using sesame?  
-3. Which approach is better?  
+From the summary, we can see that this data was generated using a microarray platform, and normalization was performed using SeSAMe. According to the referenced article, SeSAMe is an R package designed to reduce errors in DNA methylation data from Illumina methylation-specific arrays. These errors arise due to high genetic variation or potential deletions in fragment DNA, which can lead to misleading methylation signals. SeSAMe uses pOOBAH as its p-value method to mask problematic probes, which reduces false-positive methylation signals and correcting for batch effects due to technical variation [1]. 
+
+If the data had not been normalized, I would expect a larger number of errors in the data, visualized as false-positive methylation signals. These false positives could impact the linear model, which aims to find a line with the sum of least squares. If our linear model is skewed, two things can occur: first, we would have more discrepancies at the head and tail ends of the model; second, it would adjust the p-value from the ANOVA test, which could result in our probe with the highest correlation to age not truly reflecting a strong biological relationship but instead being an error or noise. 
+
+If batch correction was not applied, there would be more technical variability, making it harder to compare methylation results from probes that were run on separate occasions or runs. 
+
 
 > 3. 34 points Using the gene with the greatest association to the dependent variable, study the relationship between the fitted data and the residual values by plotting the Fitted data points as well as the observed values. Although you are welcome to be creative and explore the data in the context of this question, the following functions may be helpful: 3) Use the predict() function to obtain observed and fitted values.
 4) Use the resid() function to obtain residual values.
@@ -180,4 +185,12 @@ abline(h=0, lty=2)
 ```{r}
 plot(min.lm)
 ```
+**Discussion**  
+I first plotted the fitted vs. observed data using the linear model depicting the relationship between the subject's age and the methylation levels of the gene associated with probe cg08402704. Each coordinate (x, y) represents the observed relationship value (y) and the predicted value from the model (x). I then overlaid the residuals in the next figure, represented by gray dashed lines. Except for a few outliers, the residuals are relatively small but increase in size as we move further along the x and y axes. Since the observed values generally follow the identity line, it suggests that the model is a relatively good fit. 
 
+Looking at the histogram of residuals from the linear model, we see a bell-shaped distribution centered around 0, indicating a well-fitted model. The distribution is mostly symmetric; however, the Shapiro-Wilk test indicates that the residuals are not normally distributed, suggesting the presence of outliers, skewness or other underlying patterns in the data. I expected this, even though the histogram looked good, because our original linear model in question 1 showed many deviations in the head and tail of the normalized QQ plot. 
+
+The results have left me confused as visually the model looks to be a decent fit but the Shapiro-Wilk test says otherwise. Other tests may be needed to identify potential outliers or other issues related to noise. This is also supported by the residual vs. fitted scatter plot, where the residuals are scattered around the horizontal y=0 line, but there is a slight negative trend, indicating potentially non-random variance. Looking at the scale-location plot we are also seeing a trend which indicates a poor fit. Finally, the residuals vs leverage plot shows that the three outliers in the top right corner may be disproportionately affecting the fit as they have large residuals and large Cook’s distances.  
+
+**References**   
+[1] Zhou W, Triche TJ Jr, Laird PW, Shen H. SeSAMe: reducing artifactual detection of DNA methylation by Infinium BeadChips in genomic deletions. Nucleic Acids Res. 2018 Nov 16;46(20):e123. doi: 10.1093/nar/gky691.  
