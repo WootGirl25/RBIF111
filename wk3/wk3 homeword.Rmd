@@ -1,0 +1,189 @@
+---
+title: Week 3 Homework
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: 
+  html_notebook:
+    code_folding: hide
+    number_sections: true
+---
+> 1. 33 points Find genes in the downloaded data set with the most and the least significant effect on the continuous variable (dependent variable). In order to complete this portion of the question, you will need to loop through the records in the data and fit a linear model for each gene using the continous variable as the dependent variable and expression level as the independent variable. Then take an ANOVA on the fitted model and extract the p-value (e.g: anova(lm(continuous variable~expression, df)) ). Next, plot the distribution of p-values for gene effect on age for all of the genes. Then generate diagnostic plots and present model summaries and ANOVA results for the linear models of the two extreme cases – the gene with the most and with the least significant effect as assessed by ANOVA.
+
+```{r message=FALSE}
+library(GEOquery)
+geodata <-  getGEO("GSE174777", GSEMatrix = TRUE)
+mrat <- geodata[[1]]
+exprs_data <- exprs(mrat) #matrix with (array probes, tissue samples (geo Accessions))
+mrat.pdat <- pData(mrat)
+
+```
+**Define Variables:**  
+Dependent continuous variable = age.   
+Independent variable = expression level.   
+
+```{r}
+age <- as.numeric(mrat.pdat$`age:ch1`)
+
+#Expression data set is 37554 x 289 - reduce size to 10 x 289 for efficiency while practicing.
+#p.expr <- exprs_data[1:10, 1:289];p.expr[,1:1:5]
+```
+
+**Steps**  
+1. Initiate df to store p-values.  
+loop:  
+1. For each row, lm(age~exprsvalue)  
+2. Apply anova, extract p-value  
+then:  
+1. Plot distribution of p values.  
+3. Find lowest/highest p values.  
+4. For lowest/highest - fit linear model again, generate diagnosic QQ plot.   
+5. Print model summary and anova results for each.  
+6. Discuss.  
+```{r}
+p.vals <- data.frame(probe = character(), p = numeric()) #initiate df to store probe names and p values
+for (i in 1:length(exprs_data[,1])){ #loop through rows
+  tmp.df <- data.frame(G=exprs_data[i,],AGE=age) #make temporary df containing expression data and age
+  tmp.model <- lm(AGE~G, tmp.df) #fit linear model from df
+  tmp.anova <- anova(tmp.model) #perform anova
+  p.vals[i,1] <- row.names(exprs_data)[i]  #assign probe name to column 1
+  p.vals[i,2] <- anova(tmp.model)$"Pr(>F)"[1] #assign p-value to column 2
+}
+
+```
+
+```{r}
+#plot distribution of all p-values - histogram 
+
+hist(p.vals[,2], main = "Histogram of p-values for age~gene", xlab="p-value")
+
+```
+
+
+```{r}
+#Find row index of highest/lowest p-values
+max_i <- which.max(p.vals[!is.na(p.vals[,2]), 2]) #skip over na values
+min_i <- which.min(p.vals[!is.na(p.vals[,2]), 2])
+
+#extract probe names of highest/lowest p-values
+probe_p.max <- p.vals[max_i,1]
+probe_p.min <- p.vals[min_i,1]
+
+```
+
+```{r}
+# fit linear model to highest, qq plot, anova - print model summary and anova results
+max.df <- data.frame(G=exprs_data[probe_p.max,],AGE=age)
+max.lm <- lm(AGE~G, max.df)
+old.par <- par(mfrow=c(1,2))
+qqnorm(resid(max.lm))
+qqline(resid(max.lm))
+hist(resid(max.lm))
+print(max.lm)
+anova(max.lm)
+par(old.par)
+```
+
+
+```{r}
+# fit linear model to lowest, qq plot, anova - print model summary and anova results
+min.df <- data.frame(G=exprs_data[probe_p.min,],AGE=age)
+min.lm <- lm(AGE~G, min.df)
+old.par <- par(mfrow=c(1,2))
+qqnorm(resid(min.lm))
+qqline(resid(min.lm))
+hist(resid(min.lm))
+print(min.lm)
+anova(min.lm)
+par(old.par)
+```
+
+**Discussion**
+
+
+> 2. 33 points Using the same data set as question 1, perform the same analysis except this time, perform a batch correction on the data set prior prior to fitting the models. Be sure an plot a boxplot of the pre- and post- batch corrected data sets for comparison purposes. Batch correction can be performed by modifying the DEseq2 code to export the normalized values with the following code: dds <- estimateSizeFactors(dds)
+counts(dds, normalized=TRUE) Note: If you’re using an RNAseq dataset, DEseq2 performs it’s own internal normalization. However, the raw data that is returned from the download function we have been using will return the non-normalized values. The normalized values can be retrieved by inserting the code illustrated above after the DESeqDataSetFromMatrix() function. If you’re using an array dataset, there is no standard regarding the data that is uploaded to GEO. Therefore, you’ll need to check the normalization of the dataset. If it is normalized, then simply describe how the analysis could be effected if the data was not normalized. If it is not normalized, you can use a variety of normalization methods including the normalizationBetweenArrays function in the limma package. Generate the same plots as described in question 2. Describe the results and how they compare to the results of question 1. Then discuss which approach produces “better” results and why. This portion of the question should include plots that validate your thoughts. Although boxplots are helpful, you are welcome to be creative here.
+
+```{r}
+#check type of dataset:
+geodata[["GSE174777_series_matrix.txt.gz"]]@experimentData@other[["summary"]]
+#check normalization
+geodata[["GSE174777_series_matrix.txt.gz"]]@phenoData@data[["data_processing"]][1]
+```
+**Discussion**
+1. What is SeSaMe? Key points.  
+2. What to expect if data was not normalized using sesame?  
+3. Which approach is better?  
+
+> 3. 34 points Using the gene with the greatest association to the dependent variable, study the relationship between the fitted data and the residual values by plotting the Fitted data points as well as the observed values. Although you are welcome to be creative and explore the data in the context of this question, the following functions may be helpful: 3) Use the predict() function to obtain observed and fitted values.
+4) Use the resid() function to obtain residual values.
+5) Plot the observed and fitted data points as well as the residual values.
+
+**Steps**
+1. Greatest association = probe_p.min  
+2. Use predict() to obtain fitted values.  
+3. Use resid() to obtain residual values.  
+4. plot age against gene expression.  
+5. overlay fitted values. 
+6. create either 2nd plot for residuals, or add points/lines of residuals on original plot.  
+```{r}
+#age~geneexpr fitted to linear
+#plot(exprs_data[probe_p.min,],age, xlab="Gene Expression", ylab="Age", main= "Age~Gene Expression fitted with linear model")
+#points(min.df$G[!is.na(min.df$AGE)], predict(min.lm), col="red", pch=20)
+
+#fitted vs observed
+plot(fitted(min.lm), min.df[!is.na(min.df$AGE), "AGE"], main=paste("Plot of Fitted vs Observed Data (relationship b/w age and probe", probe_p.min), xlab="Fitted", ylab="Observed",)
+abline(0,1,lty=2)
+
+#histogram of residuals
+hist(resid(min.lm), main="Histogram of Residuals from Linear Model", xlab="Residuals")
+
+#Shapiro normality test
+shapiro.test(resid(min.lm))
+```
+
+```{r}
+#plot residulas vs fitted
+plot(fitted(min.lm), resid(min.lm), xlab="Fitted", ylab="Residuals")
+abline(h=0, lty=2)
+
+#diagnostic plots
+
+plot(min.lm)
+
+```
+```{r}
+
+#observed, fitted and residuals
+plot(
+  fitted(min.lm), 
+  min.df[!is.na(min.df$AGE), "AGE"], 
+  main = "Plot of Fitted vs Observed Data with Residuals", 
+  xlab = "Fitted Values", 
+  ylab = "Observed Values", 
+  pch = 16,      # Filled circles for observed points
+  col = "blue"   # Blue color for the observed points
+)
+
+# Add the identity line
+abline(0, 1, lty = 2, col = "red")
+
+# Add residuals as vertical lines
+segments(
+  x0 = fitted(min.lm), 
+  y0 = fitted(min.lm), 
+  x1 = fitted(min.lm), 
+  y1 = min.df[!is.na(min.df$AGE), "AGE"], 
+  col = "gray", 
+  lty = 2
+)
+
+# Add a compact legend
+legend(
+  "topleft", 
+  legend = c("Observed", "Fitted = Observed", "Residuals"), 
+  col = c("blue", "red", "gray"), 
+  pch = c(16, NA, NA), 
+  lty = c(NA, 2, 2), 
+  cex = 0.8  # Shrinks the legend text
+)
+```
