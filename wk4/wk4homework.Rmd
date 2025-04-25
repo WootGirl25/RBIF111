@@ -1,0 +1,31 @@
+---
+title: Week 4 Homework
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: 
+  html_notebook:
+    code_folding: hide
+    number_sections: true
+---
+Dont forget to cite data.  
+Steps:  
+1. read in data
+
+```{r}
+data.csv <- read.csv("breast-cancer-wisconsin.data", header = FALSE, sep =",")
+```
+
+```{r}
+data.tbl <- read.table("breast-cancer-wisconsin.data", header = FALSE, sep =",", col.names = c("id", "clump_thickness", "unif_size", "unif_shape", "adhesion", "single_epi_size", "bare_nuclei", "bland_chromatin", "normal_nucleoli", "mitoses", "malignant"))
+
+unlist(lapply(data.tbl[,1:11],class))
+#character in bare_nuc - ? for missing value.
+#use sapply to change malignant column to : 2=no, 4=yes
+#change malignant column to factor
+#separate data into 2 dfs by outcome
+#choose a column (independent variable)
+
+#for each df:
+
+```
+
