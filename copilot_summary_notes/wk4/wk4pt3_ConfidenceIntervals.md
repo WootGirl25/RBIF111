@@ -2,7 +2,6 @@ Here is the revised content for the entire file with the original mathematical s
 
 ---
 
-```markdown
 ## **1. Overview of Confidence Intervals**
 - **What is a Confidence Interval (CI)?**
   - A confidence interval provides a range of values that is likely to contain the true population parameter (e.g., the mean) with a specified level of confidence (e.g., 95%).
@@ -134,6 +133,3 @@ Here is the revised content for the entire file with the original mathematical s
 - Use the normal distribution when the population variance is known and the t-distribution when it is unknown.
 - Confidence intervals and hypothesis testing are closely related and often convey the same information.
 
-```
-
-This version preserves the original mathematical symbols and formatting for all equations. Let me know if you need further adjustments!This version preserves the original mathematical symbols and formatting for all equations. Let me know if you need further adjustments!
