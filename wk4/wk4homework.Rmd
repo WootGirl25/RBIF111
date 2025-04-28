@@ -4,9 +4,11 @@ author: "Author: Laura Wooten"
 date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
 output: 
   html_notebook:
-    code_folding: hide
+    code_folding: 
     number_sections: true
 ---
+> For this question, you will need to download a data set from the UCI machine learning repository. Separate the data set you downloaded into two groups by the outcome variable that is being studied. In the UCR machine learning repository, most of the time, this will be categorical variable in the “last column” in the data set. If more than one outcome was studied, use the one with the greatest number of records. Then, take a random sample of N=30 measurement from a selected column from each of the subsetted data sets that were partitioned by feature. Then compute the difference in their means and construct a 95% confidence interval for the difference using t.test(). Do this 1,000 times and keep track of all the confidence intervals. One way to answer this question is to use the replicate() function in R, which will return a 2 x 1000 matrix of the lower and upper bound for each of the 1000 replications.
+
 Dont forget to cite data.  
 Steps:  
 1. read in data
@@ -23,10 +25,11 @@ data.tbl <- read.table("breast-cancer-wisconsin.data", header = FALSE, sep =",",
 
 ```{r}
 unlist(lapply(data.tbl[,1:11],class))
-#character in bare_nuc - ? for missing value.
+#bare_nuclei is character?
 unique(data.tbl[,7])
-#sapply - change "?" to NA in bare-nuc
-data.tbl[,7] <- replace(data.tbl[,7], data.tbl[,7]=="?", NA)
+
+#replace ? with NA and convert to numeric
+data.tbl[,7] <- as.numeric(replace(data.tbl[,7], data.tbl[,7]=="?", NA))
 
 #change status column to : 2=Benign, 4=Malignant
 data.tbl[,11] <- replace(data.tbl[,11], data.tbl[,11]==2, "Benign")
@@ -46,8 +49,8 @@ mal.data <-  data.tbl[data.tbl$status=="Malignant",]
 #difference in sample means -compare against outcomes, 95% CI t-test.
 fun1 <- function(ben.data, mal.data, column, smpl.size=30){
   #pull random sample from each outcome
-  ben.smpl <- sample(ben.data[,column], smpl.size, replace = T) #set to replace so that each sample is independent
-  mal.smpl <- sample(mal.data[,column], smpl.size, replace =T)
+  ben.smpl <- sample(na.omit(ben.data[[column]]), smpl.size, replace = T) #set to replace so that each sample is independent
+  mal.smpl <- sample(na.omit(mal.data[[column]]), smpl.size, replace =T)
   
   #calc means
   ben.mu <- mean(ben.smpl)
@@ -72,9 +75,120 @@ fun1(ben.data, mal.data, 2)
 ```
 Repeat 1000 times using replicate()
 ```{r}
-ci.matrix <- replicate(1000, fun1(ben.data, mal.data, 2))
+ci.matrix <- replicate(1000, fun1(ben.data, mal.data, "clump_thickness"))
 #simulations are columns, transpose to make rows
 ci.matrix <- t(ci.matrix)
 colnames(ci.matrix) <- c("mu_difference", "lower_ci", "upper_ci")
+dim(ci.matrix)
+#preview
+#ci.matrix[1:10,]
+```
+
+> Then calculate: a. The average length of the confidence interval. b. The population level difference (e.g. the difference between the means) c. How often the confidence intervals contain the population level difference Repeat this analysis for the rest of the columns in the data set and describe the results.
+
+```{r}
+fun2 <- function(ci.matrix) {
+  # Average length of ci
+  ci.length.mu <- mean(ci.matrix[, "upper_ci"] - ci.matrix[, "lower_ci"])
+  # Population level difference (average of the differences from each simulation)
+  pop.difference <- mean(ci.matrix[, "mu_difference"])
+  # How often does the CI include the estimated pop difference?
+  popdiff.in.ci <- sum(ci.matrix[, "lower_ci"] <= pop.difference & ci.matrix[, "upper_ci"] >= pop.difference) / nrow(ci.matrix) * 100
+  
+  return(list(ci_length = ci.length.mu, pop_diff = pop.difference, pct_in_CI = popdiff.in.ci))
+}
+```
+Repeat for all columns:
+
+```{r}
+#data frame to store stats for each column
+column.stats <- data.frame(column_name = character(), avg_ci_length= numeric(), pop_level_difference= numeric(), percent_in_ci= numeric())
+
+#create empty list to store sample data for later
+sample.matrices <- list()
+
+for (column.i in colnames(data.tbl)[2:10]){
+  col.ci.matrix <- replicate(1000, fun1(ben.data, mal.data, column.i))
+  col.ci.matrix <- t(col.ci.matrix)
+  colnames(col.ci.matrix) <- c("mu_difference", "lower_ci", "upper_ci")
+  
+  #store matrix in the list for later use (to compare against population data)
+  sample.matrices[[column.i]] <- col.ci.matrix
+  
+  #calculate summary stats, add to df
+  calculations <- fun2(col.ci.matrix)
+  row.df <- data.frame(column_name= column.i,avg_ci_length= calculations$ci_length, pop_level_difference= calculations$pop_diff, percent_in_ci= calculations$pct_in_CI)
+  #bind new row to column.stats
+  column.stats <- rbind(column.stats, row.df)
+}
+```
+**DESCRIVE RESULTS** 
+
+>Next, calculate the confidence interval of the entire set of samples and compare it to by the randomly samples confidence intervals. A visual representation might be nice here which illustrates the confidence interval of the entire dataset relative to the randomly sampled confidence intervals
+
+```{r eval=FALSE, include=FALSE}
+## NA - See below
+#t.test each entire column, compare to samples. 
+for (i in 1:nrow(column.stats)){
+  
+  #pull sample data from column.stats
+  column.i <- column.stats$column_name[i]
+  pop.diff <- column.stats$pop_level_difference[i]
+  avg.length <- column.stats$avg_ci_length[i]
+  
+  #perform t-test on entire columns
+  full.ttest <- t.test(mal.data[[column.i]], ben.data[[column.i]], conf.level = 0.95)
+  full.ci <- full.ttest$conf.int
+  full.diff <- full.ttest$estimate[1] - full.ttest$estimate[2] #estimate pulls means from varX(malignant) vary(benign)
+  
+  #plot
+
+}
+```
+not working!
+```{r}
+pop_vs_sample_plots <- function(sample.matrices.list, ben.data, mal.data, column){
+  #assign correct 1000x3 matrix for column from the list
+  ci.matrix <- sample.matrices.list[[column]]
+  
+  #t-test entire column (population data)
+  full.ttest <- t.test(mal.data[[column]], ben.data[[column]], conf.level = 0.95)
+  full.ci <- full.ttest$conf.int
+  full.diff <- full.ttest$estimate[1] - full.ttest$estimate[2]  #estimate pulls means from varX(malignant) vary(benign)
+  
+  #define plot limits
+  y_range <- range(c(ci_matrix[, "lower_ci"], ci_matrix[, "upper_ci"], full.ci)) #could also use max?
+  plot(1:1000, 1:000, type = "n",
+       xlab = "Sample Simulations", ylab = "Mean Difference",
+       ylim = y_range,
+       main = paste("Simulated Confidence Intervals for", column))
+  # Plot each simulation's confidence interval as a vertical segment.
+  for (i in 1:n_sim) {
+    segments(x0 = i, x1 = i, 
+             y0 = ci_matrix[i, "lower_ci"], 
+             y1 = ci_matrix[i, "upper_ci"],
+             col = rgb(0, 0, 1, alpha = 0.3))
+  }
+  
+  # Overlay the simulation's mean differences as points.
+  points(1:n_sim, ci_matrix[, "mu_difference"], pch = 16,
+         col = rgb(0, 0, 1, alpha = 0.5))
+  
+  # Add horizontal lines for the full data t-test results:
+  # Red dashed lines for the bounds of the full sample CI.
+  abline(h = full.ci[1], col = "red", lty = 2, lwd = 2)
+  abline(h = full.ci[2], col = "red", lty = 2, lwd = 2)
+  # Dark green solid line for the full sample mean difference.
+  abline(h = full.diff, col = "blue", lwd = 2)
+  
+  # Optional: Add a legend for clarity.
+  legend("topright",
+         legend = c("Simulation CIs", "Full-sample CI bounds", "Full-sample Mean Diff"),
+         col = c(rgb(0, 0, 1, alpha = 0.5), "red", "blue"),
+         lty = c(NA, 2, 1),
+         pch = c(16, NA, NA))
+}
+  
+pop_vs_sample_plots(sample.matrices, ben.data, mal.data, "unif_size")
 ```
 
