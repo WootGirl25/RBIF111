@@ -10,22 +10,71 @@ output:
 Dont forget to cite data.  
 Steps:  
 1. read in data
+2. adknowledge ? in bare-nuc  
+3. Separate data by outcome  
+4. Select column of interest  
+5. For each df: random sample n=30  
+6. difference in sample means -compare against outcomes, 95% CI t-test.  
+7. rpt 1000 times
 
 ```{r}
-data.csv <- read.csv("breast-cancer-wisconsin.data", header = FALSE, sep =",")
+data.tbl <- read.table("breast-cancer-wisconsin.data", header = FALSE, sep =",", col.names = c("id", "clump_thickness", "unif_size", "unif_shape", "adhesion", "single_epi_size", "bare_nuclei", "bland_chromatin", "normal_nucleoli", "mitoses", "status"))
 ```
 
 ```{r}
-data.tbl <- read.table("breast-cancer-wisconsin.data", header = FALSE, sep =",", col.names = c("id", "clump_thickness", "unif_size", "unif_shape", "adhesion", "single_epi_size", "bare_nuclei", "bland_chromatin", "normal_nucleoli", "mitoses", "malignant"))
-
 unlist(lapply(data.tbl[,1:11],class))
 #character in bare_nuc - ? for missing value.
-#use sapply to change malignant column to : 2=no, 4=yes
+unique(data.tbl[,7])
+#sapply - change "?" to NA in bare-nuc
+data.tbl[,7] <- replace(data.tbl[,7], data.tbl[,7]=="?", NA)
+
+#change status column to : 2=Benign, 4=Malignant
+data.tbl[,11] <- replace(data.tbl[,11], data.tbl[,11]==2, "Benign")
+data.tbl[,11] <- replace(data.tbl[,11], data.tbl[,11]==4, "Malignant")
+
 #change malignant column to factor
+data.tbl$status <- as.factor(data.tbl$status)
+
 #separate data into 2 dfs by outcome
-#choose a column (independent variable)
+ben.data <- data.tbl[data.tbl$status== "Benign",]
+mal.data <-  data.tbl[data.tbl$status=="Malignant",]
+```
 
-#for each df:
+```{r}
+#choose a column (independent variable) - clump thickness [,1]
+#For each df: random sample n=30  
+#difference in sample means -compare against outcomes, 95% CI t-test.
+fun1 <- function(ben.data, mal.data, column, smpl.size=30){
+  #pull random sample from each outcome
+  ben.smpl <- sample(ben.data[,column], smpl.size, replace = T) #set to replace so that each sample is independent
+  mal.smpl <- sample(mal.data[,column], smpl.size, replace =T)
+  
+  #calc means
+  ben.mu <- mean(ben.smpl)
+  mal.mu <- mean(mal.smpl)
+  
+  #calc difference in means
+  diff.mu <- mal.mu - ben.mu #based on quick view of means, malignant outcome is higher
+  
+  #perform t-test on difference in means
+  ci.95 <- t.test(mal.smpl, ben.smpl, conf.level= 0.95)
+ 
+  #return(list(diff.mu, ci.95)) #returns full t-test > try $conf.int
+  #return(list(diff.mu, ci.95$conf.int)) #conf.int returns 3 items, try isolate lower and upper bounds only
+  return(c(diff.mu, ci.95$conf.int[1], ci.95$conf.int[2]))
+}
 
+
+```
+Check first instance (1 simulation) of function, output displayed as difference in sample means (between outcomes), lower bound of 95% confidence interval, higher bound:
+```{r}
+fun1(ben.data, mal.data, 2)
+```
+Repeat 1000 times using replicate()
+```{r}
+ci.matrix <- replicate(1000, fun1(ben.data, mal.data, 2))
+#simulations are columns, transpose to make rows
+ci.matrix <- t(ci.matrix)
+colnames(ci.matrix) <- c("mu_difference", "lower_ci", "upper_ci")
 ```
 
