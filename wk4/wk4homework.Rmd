@@ -21,6 +21,9 @@ Steps:
 
 ```{r}
 data.tbl <- read.table("breast-cancer-wisconsin.data", header = FALSE, sep =",", col.names = c("id", "clump_thickness", "unif_size", "unif_shape", "adhesion", "single_epi_size", "bare_nuclei", "bland_chromatin", "normal_nucleoli", "mitoses", "status"))
+
+#preview
+data.tbl[1:5,]
 ```
 
 ```{r}
@@ -81,7 +84,7 @@ ci.matrix <- t(ci.matrix)
 colnames(ci.matrix) <- c("mu_difference", "lower_ci", "upper_ci")
 dim(ci.matrix)
 #preview
-#ci.matrix[1:10,]
+ci.matrix[1:5,]
 ```
 
 > Then calculate: a. The average length of the confidence interval. b. The population level difference (e.g. the difference between the means) c. How often the confidence intervals contain the population level difference Repeat this analysis for the rest of the columns in the data set and describe the results.
@@ -97,6 +100,8 @@ fun2 <- function(ci.matrix) {
   
   return(list(ci_length = ci.length.mu, pop_diff = pop.difference, pct_in_CI = popdiff.in.ci))
 }
+
+fun2(ci.matrix)
 ```
 Repeat for all columns:
 
@@ -121,13 +126,15 @@ for (column.i in colnames(data.tbl)[2:10]){
   #bind new row to column.stats
   column.stats <- rbind(column.stats, row.df)
 }
+column.stats
 ```
-**DESCRIVE RESULTS** 
+**DESCRIBE RESULTS** 
 
 >Next, calculate the confidence interval of the entire set of samples and compare it to by the randomly samples confidence intervals. A visual representation might be nice here which illustrates the confidence interval of the entire dataset relative to the randomly sampled confidence intervals
 
 ```{r eval=FALSE, include=FALSE}
-## NA - See below
+## NA - CHANGED HOW I STRUCTURED THIS----- SEE CODE CHUNCK BENEATH
+#__________________________________________________
 #t.test each entire column, compare to samples. 
 for (i in 1:nrow(column.stats)){
   
@@ -145,11 +152,12 @@ for (i in 1:nrow(column.stats)){
 
 }
 ```
-not working!
+
 ```{r}
-pop_vs_sample_plots <- function(sample.matrices.list, ben.data, mal.data, column){
+pop_vs_sample_plots <- function(sample.matrices, ben.data, mal.data, column){
   #assign correct 1000x3 matrix for column from the list
-  ci.matrix <- sample.matrices.list[[column]]
+  tmp.matrix <- sample.matrices[[column]]
+
   
   #t-test entire column (population data)
   full.ttest <- t.test(mal.data[[column]], ben.data[[column]], conf.level = 0.95)
@@ -157,38 +165,92 @@ pop_vs_sample_plots <- function(sample.matrices.list, ben.data, mal.data, column
   full.diff <- full.ttest$estimate[1] - full.ttest$estimate[2]  #estimate pulls means from varX(malignant) vary(benign)
   
   #define plot limits
-  y_range <- range(c(ci_matrix[, "lower_ci"], ci_matrix[, "upper_ci"], full.ci)) #could also use max?
-  plot(1:1000, 1:000, type = "n",
-       xlab = "Sample Simulations", ylab = "Mean Difference",
+  y_range <- range(c(tmp.matrix[, "lower_ci"], tmp.matrix[, "upper_ci"], full.ci)) #could also use max?
+  plot(1:1000, 1:1000, type = "n",
+       xlab = "n 1000 sims", ylab = "Mean Difference",
        ylim = y_range,
        main = paste("Simulated Confidence Intervals for", column))
-  # Plot each simulation's confidence interval as a vertical segment.
-  for (i in 1:n_sim) {
+  #plot each iid's confidence interval as a vertical line
+  for (i in 1:1000) {
     segments(x0 = i, x1 = i, 
-             y0 = ci_matrix[i, "lower_ci"], 
-             y1 = ci_matrix[i, "upper_ci"],
+             y0 = tmp.matrix[i, "lower_ci"], 
+             y1 = tmp.matrix[i, "upper_ci"],
              col = rgb(0, 0, 1, alpha = 0.3))
   }
   
-  # Overlay the simulation's mean differences as points.
-  points(1:n_sim, ci_matrix[, "mu_difference"], pch = 16,
-         col = rgb(0, 0, 1, alpha = 0.5))
+  # add each i.i.d's mean differences as points.
+  points(1:1000, tmp.matrix[, "mu_difference"], pch = 16, col = rgb(0, 0, 1, alpha = 0.5))
   
-  # Add horizontal lines for the full data t-test results:
-  # Red dashed lines for the bounds of the full sample CI.
+  #lines for the bounds of the population CI
   abline(h = full.ci[1], col = "red", lty = 2, lwd = 2)
   abline(h = full.ci[2], col = "red", lty = 2, lwd = 2)
-  # Dark green solid line for the full sample mean difference.
-  abline(h = full.diff, col = "blue", lwd = 2)
+  #line for the population mean diff
+  abline(h = full.diff, col = "green", lwd = 2)
   
-  # Optional: Add a legend for clarity.
+  # add a legend
   legend("topright",
-         legend = c("Simulation CIs", "Full-sample CI bounds", "Full-sample Mean Diff"),
-         col = c(rgb(0, 0, 1, alpha = 0.5), "red", "blue"),
-         lty = c(NA, 2, 1),
-         pch = c(16, NA, NA))
+         legend = c("Difference in smpl means", "Sample CI's", "Population CI", "Difference in pop mean"), col = c(rgb(0, 0, 1, alpha = 0.5),rgb(0, 0, 1, alpha = 0.3), "red", "green"),lty = c(NA, 1, 2, 1), pch = c(16, NA, NA, NA), cex=0.5)
 }
   
-pop_vs_sample_plots(sample.matrices, ben.data, mal.data, "unif_size")
+
+```
+
+```{r}
+#perform function on each column
+for (column.i in colnames(data.tbl)[2:10]){
+  pop_vs_sample_plots(sample.matrices,ben.data,mal.data, column.i)
+}
+```
+
+___
+> 2. Download a data set from GEO that contains a continuous variable annotation. Build linear models of the effect of gene expression for each gene on the continuous variable (the continuous variable is the dependent variable). Then calculate confidence intervals for each model (use confint(), no need to try to calculate the intervals manually). Order the genes by their relationship to the dependent variable (e.g. p-value) and plot the confidence interval values. Describe results in plain English. Next, return the gene with the greatest and lowest predictive relationship and return the confidence intervals for each one of these. Describe these results.
+
+```{r message=FALSE}
+library(GEOquery)
+geodata <-  getGEO("GSE27272", GSEMatrix = TRUE)
+eset <- geodata[[1]]
+edata <- exprs(eset) #expression matrix
+pheno <- pData(eset)
+
+#assay data (edata) if wont load at work:
+#geodata[["GSE27272_series_matrix.txt.gz"]]@assayData[["exprs"]]
+
+```
+**Define Variables:**  
+Dependent continuous variable = "characteristics_ch1.11"   cord blood cotinine (ng/ml)
+Independent variable = expression level.
+
+```{r}
+pheno$characteristics_ch1.11[1:3]
+cord_conc <- as.numeric(gsub(".*: ","",pheno$characteristics_ch1.11))
+cord_conc[1:5]
+###
+
+#store results in df
+exprs.df <- data.frame(
+  gene = row.names(edata),
+  smean = NA,
+  pval= NA,
+  ci.lower= NA,
+  ci.upper= NA
+)
+#for (i in 1:2){
+for (i in 1:length(edata[,1])){ #loop through rows
+  tmp.df <- data.frame(G=edata[i,],CONC=cord_conc);#print(tmp.df) #make temporary df containing expression data and age
+  #fit linear model, save sample mean and pvalue of gene
+  tmp.model <- lm(CONC~G, tmp.df) #fit linear model from df
+  s.tmp.model <- summary(tmp.model)
+  exprs.df$smean[i] <- coef(s.tmp.model)[2, "Estimate"]
+  exprs.df$pval[i] <- coef(s.tmp.model)[2, "Pr(>|t|)"]
+  
+  #calc CIs for gene expression coefficient
+  tmp.ci <- confint(tmp.model)
+  exprs.df$ci.lower <- tmp.ci[2,1] #G is on row two of tmp.ci
+  exprs.df$ci.upper <- tmp.ci[2,2]
+}
+```
+Order genes by p-values
+```{r}
+#sort df, ascending order
 ```
 
