@@ -1,0 +1,67 @@
+---
+title: Week 4 Homework qn2
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: 
+  html_notebook:
+    code_folding: 
+    number_sections: true
+---
+> 2. Download a data set from GEO that contains a continuous variable annotation. Build linear models of the effect of gene expression for each gene on the continuous variable (the continuous variable is the dependent variable). Then calculate confidence intervals for each model (use confint(), no need to try to calculate the intervals manually). Order the genes by their relationship to the dependent variable (e.g. p-value) and plot the confidence interval values. Describe results in plain English. Next, return the gene with the greatest and lowest predictive relationship and return the confidence intervals for each one of these. Describe these results.
+
+```{r message=FALSE}
+library(GEOquery)
+geodata <-  getGEO("GSE27272", GSEMatrix = TRUE)
+#eset <- geodata[[1]]
+#edata <- exprs(eset)
+#pheno <- pData(eset)
+
+#for lower Ram
+edata50 <- exprs(geodata[[1]][1:50,]) #expression matrix
+save(edata50,file = "first50rows.rda")
+cord_conc <- as.numeric(gsub(".*: ","",pData(geodata[[1]])$characteristics_ch1.11))
+save(cord_conc, file = "cord_conc.rda")
+
+
+#assay data (edata) if wont load at work:
+#geodata[["GSE27272_series_matrix.txt.gz"]]@assayData[["exprs"]]
+
+```
+**Define Variables:**  
+Dependent continuous variable = "characteristics_ch1.11"   cord blood cotinine (ng/ml)
+Independent variable = expression level.
+
+```{r}
+pheno$characteristics_ch1.11[1:3]
+cord_conc <- as.numeric(gsub(".*: ","",pheno$characteristics_ch1.11))
+cord_conc[1:5]
+###
+
+#store results in df
+exprs.df <- data.frame(
+  gene = row.names(edata),
+  smean = NA,
+  pval= NA,
+  ci.lower= NA,
+  ci.upper= NA
+)
+#for (i in 1:2){
+for (i in 1:length(edata[,1])){ #loop through rows
+  tmp.df <- data.frame(G=edata[i,],CONC=cord_conc);#print(tmp.df) #make temporary df containing expression data and age
+  #fit linear model, save sample mean and pvalue of gene
+  tmp.model <- lm(CONC~G, tmp.df) #fit linear model from df
+  s.tmp.model <- summary(tmp.model)
+  exprs.df$smean[i] <- coef(s.tmp.model)[2, "Estimate"]
+  exprs.df$pval[i] <- coef(s.tmp.model)[2, "Pr(>|t|)"]
+  
+  #calc CIs for gene expression coefficient
+  tmp.ci <- confint(tmp.model)
+  exprs.df$ci.lower <- tmp.ci[2,1] #G is on row two of tmp.ci
+  exprs.df$ci.upper <- tmp.ci[2,2]
+}
+```
+Order genes by p-values
+```{r}
+#sort df, ascending order
+```
+
