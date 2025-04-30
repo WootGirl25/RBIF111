@@ -1,8 +1,11 @@
 ---
-title: Week 4 Homework qn2
+title: Week 4 Homework Question 2
 author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
 output: 
-  html_notebook
+  html_notebook:
+    code_folding: 
+    number_sections: true
 ---
 > 2. Download a data set from GEO that contains a continuous variable annotation. Build linear models of the effect of gene expression for each gene on the continuous variable (the continuous variable is the dependent variable). Then calculate confidence intervals for each model (use confint(), no need to try to calculate the intervals manually). Order the genes by their relationship to the dependent variable (e.g. p-value) and plot the confidence interval values. Describe results in plain English. Next, return the gene with the greatest and lowest predictive relationship and return the confidence intervals for each one of these. Describe these results.
 
@@ -29,11 +32,10 @@ load("/cloud/project/wk4/first50rows.rda") #cord_conc (num [1:183])
 
 
 **Define Variables:**  
-Dependent continuous variable = "characteristics_ch1.11"   cord blood cotinine (ng/ml)
+Dependent continuous variable = "characteristics_ch1.11" cord blood cotinine (ng/ml).  
 Independent variable = expression level.
 
 ```{r}
-###########FOR FINAL FILE##########
 pheno$characteristics_ch1.11[1:3]
 cord_conc <- as.numeric(gsub(".*: ","",pheno$characteristics_ch1.11))
 cord_conc[1:5]
@@ -97,12 +99,70 @@ s.exprs.lm.stats <-  exprs.lm.stats[order(exprs.lm.stats$pval),]
 
 #plot cis from sorted df
 plot(1:nrow(s.exprs.lm.stats), s.exprs.lm.stats$coef.estimate, ylim=range(c(s.exprs.lm.stats$ci.lower, s.exprs.lm.stats$ci.upper, s.exprs.lm.stats$coef.estimate)), pch=19, xlab="Genes (sorted by p-value)", ylab="Coefficient estimate and CIs", main="Confidence intervals for concentration ~ gene expression")
-arrows(1:nrow(s.exprs.lm.stats), s.exprs.lm.stats$ci.lower, 1:nrow(s.exprs.lm.stats), s.exprs.lm.stats$ci.upper, angle=90, code=3, length=0.1)
-#overlay line at y=0 (smean = 0)
+arrows(1:nrow(s.exprs.lm.stats), s.exprs.lm.stats$ci.lower, 1:nrow(s.exprs.lm.stats), s.exprs.lm.stats$ci.upper, angle=90, code=1, length=0.1)
+#overlay line at y=0 (estimate = 0)
 abline(h = 0, col = "green", lty=2, lwd = 2)
-```
-**DISCUSS**
 
+```
+Obviously we have too many genes in this data set to effectively draw conclusions about confidence intervals. As they are ordered by p-value, I'll go ahead and plot the first and last 50 genes in the data frame, corresponding to those with the 50 lowest and highest p-values from the linear models.
+```{r eval=FALSE, include=FALSE}
+# Create a histogram of gene expression coefficients
+hist(s.exprs.lm.stats$coef.estimate, 
+     breaks = 50,  # Number of bins
+     col = "lightblue", 
+     border = "black",
+     main = "Histogram of Gene Expression Coefficients",
+     xlab = "Coefficient Estimate",
+     ylab = "Frequency")
+
+# Overlay a vertical line at zero (same idea as your abline)
+abline(v = 0, col = "red", lwd = 2, lty = 2)
+```
+
+```{r}
+# side by side plots
+par(mfrow=c(1,2))  
+
+# top 50 genes by p-value - same plot as above
+plot(1:50, s.exprs.lm.stats$coef.estimate[1:50], 
+     ylim=range(c(s.exprs.lm.stats$ci.lower[1:50], s.exprs.lm.stats$ci.upper[1:50], s.exprs.lm.stats$coef.estimate[1:50])), 
+     pch=19, xlab="Top 50 Genes (by ascending p-value)", 
+     ylab="Coefficient estimate and CIs", 
+     main="CIs for most significant genes", cex=0.7)
+arrows(1:50, s.exprs.lm.stats$ci.lower[1:50], 
+       1:50, s.exprs.lm.stats$ci.upper[1:50], 
+       angle=90, code=3, length=0.1) #creates plot with "error" style lines
+abline(h = 0, col = "green", lty=2, lwd = 2)
+#legend
+legend("bottomright",
+         legend = c("Coef. estimate", "CI's"), lty = c(NA, 1), pch = c(16, NA), cex=0.35)
+
+#bottom 50 genes by p-value
+plot(1:50, s.exprs.lm.stats$coef.estimate[(nrow(s.exprs.lm.stats)-49):nrow(s.exprs.lm.stats)], 
+     ylim=range(c(s.exprs.lm.stats$ci.lower[(nrow(s.exprs.lm.stats)-49):nrow(s.exprs.lm.stats)], s.exprs.lm.stats$ci.upper[(nrow(s.exprs.lm.stats)-49):nrow(s.exprs.lm.stats)], s.exprs.lm.stats$coef.estimate[(nrow(s.exprs.lm.stats)-49):nrow(s.exprs.lm.stats)])), 
+     pch=19, xlab="Bottom 50 Genes (by ascending p-value)", 
+     ylab="Coefficient estimate and CIs", 
+     main="CIs for least significant genes", cex=0.7)
+arrows(1:50, s.exprs.lm.stats$ci.lower[(nrow(s.exprs.lm.stats)-49):nrow(s.exprs.lm.stats)], 
+       1:50, s.exprs.lm.stats$ci.upper[(nrow(s.exprs.lm.stats)-49):nrow(s.exprs.lm.stats)], 
+       angle=90, code=3, length=0.1)
+abline(h = 0, col = "green", lty=2, lwd = 2)
+
+#legend
+legend("bottomright",
+         legend = c("Coef. estimate", "CI's"), lty = c(NA, 1), pch = c(16, NA), cex=0.35)
+par(mfrow=c(1,1))
+
+
+```
+
+
+**DISCUSS**
+The data set that I pulled the expression matrix and continuous variable from relates to gene expression levels against smoking/non-smoking/passive-smoking mothers. The particular continuous variable I chose is the concentration cotinine (a byproduct of nicotine) sampled from cord blood. In this particular set, I would assume that the concentration of this would be the independent variable and the dependent variable would be the resulting gene expression. However, given that the homework question specifically states to use the continuous variable as the dependent variable, I have conducted my analysis to reflect that and will draw all conclusions based on it. The confidence intervals in these plots are depicted by black vertical lines with bars on the ends, and the coefficient estimates are represented by black points. The coefficient estimate for each gene represents the estimated rate of change of the dependent variable (concentration) as our independent variable (expression level) increases by 1 unit. It aims to measure uncertainty in our coefficient estimate, as the true population coefficient doesn't change, but our ability to estimate it from a sample does. Because we only have data for 183 patients out of the underlying population of child-baring women, calculating the confidence interval provides a range where we expect the true coefficient to fall 95% of the time if we continued to resample from the population. The spread of the interval represent the precision of the estimate, with a narrower interval suggesting greater certainty and less variability in the sample data.
+
+In the plot for least significant genes we can see that the coefficient estimates are aligned with the y=0 dotted line and the confidence intervals span either side, and generally with greater spread than what we see from the most significant genes. When we think of the rate of change of the gene expression being zero it means that no matter how much that expression changes, it doesn't affect the concentration of cotinine in cord blood. In the plot for most significant genes we can see that while the spread of the intervals varies, none of them cross the y=0 dotted line, indicating that the expression of these genes are correlated with concentration levels in cord blood, but not necessarily causative. We also see that the intervals are present on either side of the dotted line. Those with a positive coefficient estimate indicate a positive rate of change (as gene expression levels rise so does concentration), and those with a negative estimate indicate a negative rate of change (as gene expression levels rise, concentration drops). <br>
+
+---
 
 Find gene with greatest and lowest predictive relationship & return results
 ```{r}
@@ -119,16 +179,18 @@ max.gene <- exprs.lm.stats$gene[max.i]
 min.gene <- exprs.lm.stats$gene[min.i]
 
 #return details of each gene:
-cat(sprintf("The gene with the greatest relationship to cotinine concentration in cord blood is %s, its coefficient estimate is: .4f, with 95%% confidence intervals of: %.4f - %.4f .\n", 
+cat(sprintf("The gene with the greatest relationship to cotinine concentration in cord blood is %s, its coefficient estimate is: %s, with 95%% confidence interval of: %.4f - %.4f .\n", 
             max.gene, 
             exprs.lm.stats$coef.estimate[max.i], 
             exprs.lm.stats$ci.lower[max.i], 
             exprs.lm.stats$ci.upper[max.i]))
 
-cat(sprintf("The gene with the least relationship to cotinine concentration in cord blood is %s, its coefficient estimate is: %.4f, with 95%% confidence intervals of: %.4f - %.4f.\n", 
+cat(sprintf("The gene with the least relationship to cotinine concentration in cord blood is %s, its coefficient estimate is: %s, with 95%% confidence interval of: %.4f - %.4f.\n", 
             min.gene, 
             exprs.lm.stats$coef.estimate[min.i], 
             exprs.lm.stats$ci.lower[min.i], 
             exprs.lm.stats$ci.upper[min.i]))
 ```
-
+**DISCUSS**  
+The gene with the greatest predictive relationship with cotinine concentration has a coefficient estimate of 26.5, which indicates that as gene expression increases by 1 of it's measured units, the concentration of cotinine increases by 26.5 of its own units. The confidence interval has a wide spread indicating there is some variability in the data, but the confidence interval does not include zero, so there is a significant predictive relationship between expression of this gene and cotinine concentration. <br>
+On the other hand, ILMN_1706357 has a confidence interval that is much narrower and is evenly spread across zero. This suggests that if we continue to resample the underlying population we'd expect the measured relationship to remain within this range 95% of the time. It indicates that it lacks a strong predictive relationship between the two variables.

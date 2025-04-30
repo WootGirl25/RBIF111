@@ -1,5 +1,5 @@
 ---
-title: Week 4 Homework
+title: Week 4 Homework Question 1
 author: "Author: Laura Wooten"
 date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
 output: 
@@ -9,10 +9,9 @@ output:
 ---
 > For this question, you will need to download a data set from the UCI machine learning repository. Separate the data set you downloaded into two groups by the outcome variable that is being studied. In the UCR machine learning repository, most of the time, this will be categorical variable in the “last column” in the data set. If more than one outcome was studied, use the one with the greatest number of records. Then, take a random sample of N=30 measurement from a selected column from each of the subsetted data sets that were partitioned by feature. Then compute the difference in their means and construct a 95% confidence interval for the difference using t.test(). Do this 1,000 times and keep track of all the confidence intervals. One way to answer this question is to use the replicate() function in R, which will return a 2 x 1000 matrix of the lower and upper bound for each of the 1000 replications.
 
-Dont forget to cite data.  
 Steps:  
 1. read in data
-2. adknowledge ? in bare-nuc  
+2. acknowledge ? in bare-nuc  
 3. Separate data by outcome  
 4. Select column of interest  
 5. For each df: random sample n=30  
@@ -128,7 +127,10 @@ for (column.i in colnames(data.tbl)[2:10]){
 }
 column.stats
 ```
-**DESCRIBE RESULTS** 
+**DESCRIBE RESULTS**  
+These results depict the differences in measurements between benign and malignant tissue samples from the breast cancer data set. The confidence intervals represent a measure of reliability of our statistical analysis. The average length of the confidence intervals varied across each feature, with bland_chromatin producing the most precise estimate (smallest spread) and bare_nuclei showing the widest spread, suggesting greater variability in its measurements. The population-level difference, which is the estimated mean difference between benign and malignant cases, was largest for bare_nuclei at 6.25, which potentially indicates a strong association with malignancy, whereas mitoses at 1.55 exhibited a much smaller difference, therefore meaning a weaker predictive relationship between variables. Across the variables, the confidence intervals contained the population-level difference approximately 95% of the time, aligning with expectations as we constructed a linear model from a confidence level of 0.95. This suggests that the statistical analysis is well constructed, and can provide a reliable estimate of the mean differences. However, mitoses (91.7%) showed a slightly lower coverage percentage, which may reflect greater variability in the data. Looking at these results as a whole, features with large mean differences and narrow confidence intervals show stronger separation between groups, whereas those with smaller differences and wider intervals may indicate weaker predictive reliability.  
+
+---
 
 >Next, calculate the confidence interval of the entire set of samples and compare it to by the randomly samples confidence intervals. A visual representation might be nice here which illustrates the confidence interval of the entire dataset relative to the randomly sampled confidence intervals
 
@@ -201,56 +203,4 @@ for (column.i in colnames(data.tbl)[2:10]){
   pop_vs_sample_plots(sample.matrices,ben.data,mal.data, column.i)
 }
 ```
-
-___
-> 2. Download a data set from GEO that contains a continuous variable annotation. Build linear models of the effect of gene expression for each gene on the continuous variable (the continuous variable is the dependent variable). Then calculate confidence intervals for each model (use confint(), no need to try to calculate the intervals manually). Order the genes by their relationship to the dependent variable (e.g. p-value) and plot the confidence interval values. Describe results in plain English. Next, return the gene with the greatest and lowest predictive relationship and return the confidence intervals for each one of these. Describe these results.
-
-```{r message=FALSE}
-library(GEOquery)
-geodata <-  getGEO("GSE27272", GSEMatrix = TRUE)
-eset <- geodata[[1]]
-edata <- exprs(eset) #expression matrix
-pheno <- pData(eset)
-
-#assay data (edata) if wont load at work:
-#geodata[["GSE27272_series_matrix.txt.gz"]]@assayData[["exprs"]]
-
-```
-**Define Variables:**  
-Dependent continuous variable = "characteristics_ch1.11"   cord blood cotinine (ng/ml)
-Independent variable = expression level.
-
-```{r}
-pheno$characteristics_ch1.11[1:3]
-cord_conc <- as.numeric(gsub(".*: ","",pheno$characteristics_ch1.11))
-cord_conc[1:5]
-###
-
-#store results in df
-exprs.df <- data.frame(
-  gene = row.names(edata),
-  smean = NA,
-  pval= NA,
-  ci.lower= NA,
-  ci.upper= NA
-)
-#for (i in 1:2){
-for (i in 1:length(edata[,1])){ #loop through rows
-  tmp.df <- data.frame(G=edata[i,],CONC=cord_conc);#print(tmp.df) #make temporary df containing expression data and age
-  #fit linear model, save sample mean and pvalue of gene
-  tmp.model <- lm(CONC~G, tmp.df) #fit linear model from df
-  s.tmp.model <- summary(tmp.model)
-  exprs.df$smean[i] <- coef(s.tmp.model)[2, "Estimate"]
-  exprs.df$pval[i] <- coef(s.tmp.model)[2, "Pr(>|t|)"]
-  
-  #calc CIs for gene expression coefficient
-  tmp.ci <- confint(tmp.model)
-  exprs.df$ci.lower <- tmp.ci[2,1] #G is on row two of tmp.ci
-  exprs.df$ci.upper <- tmp.ci[2,2]
-}
-```
-Order genes by p-values
-```{r}
-#sort df, ascending order
-```
-
+I tried to put all these plots together but they ended up being too small. Each blue vertical line represents a confidence interval from a single random sample of N=30, while the blue dots indicate the mean difference for each sample. The red dashed lines mark the upper and lower bounds of the confidence interval from the entire population, while the green line represents the population mean difference. Each of these plots shows the variability in the confidence intervals from repeated samples. The spread of the individual sample confidence intervals shows how much estimates fluctuate from sampling variation. The population confidence interval provides a standard to compare our samples to, showing where the true underlying difference lies. However, I understand that this ‘population’ is still a sample from the broader underlying population, and while we treated it as a reference, it does not represent the absolute population but is an estimate itself based on the available data from the set. If a large proportion of the individual confidence intervals contain the population mean difference, it supports our sampling approach produces reliable estimates even under the limitations of working with a finite dataset.
