@@ -1,0 +1,12 @@
+Initial prompt:
+I am struggling to understand these notes for my class biomedical statistics with R.
+Can you please break down each section, describe what is happening in each statistical formula (keep the equasion number so I can reference it), and keep each formula in its symbolic notation. Then please summarize each section as you go, and provide an explanation in plain easy to understand english.
+
+Correct symbols:
+see the symbols in the formula here is <>, 
+but I want it to remain as <>
+Is there a way to change all these in the response you provided?
+
+Check for errors in notes:
+last question - do these notes look correct to you? sometimes there can be mistakes in the originals.
+
