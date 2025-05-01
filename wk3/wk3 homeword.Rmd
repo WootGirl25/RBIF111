@@ -98,6 +98,7 @@ par(old.par)
 ```
 
 **Discussion**
+
 In this question, a linear model was fitted between age and the gene methylation level for each array probe. An ANOVA test was conducted on each model, and the resulting p-value was saved to a data frame alongside the probe name. A histogram of the p-values shows the distribution of p-values. We see a very high frequency of p-values under 0.05, which suggests that many probes have a significant association with age. However, there is a tail of higher p-values with a low frequency that stretches all the way to 1. This seems rational, as not all genes are expected to be associated with the dependent variable. 
 
 The QQ plots for the independent variable with the highest and lowest resulting p-value from ANOVA show deviations from their theoretical quantiles, particularly in the tails for each. The deviations are more extreme in the model with the highest p-value `max.lm`. This is to be expected, as the ANOVA results in a p-value of 1, meaning that the effect of gene expression measured by this probe is not significant and has no effect on the dependent variable (age). The fact that the model with the lowest p-value also shows deviation at the tail of the QQ plot may indicate that the residuals are not perfectly normally distributed, which is an assumption of linear regression. This means that the accuracy of our prediction lowers the further we move from the mean. It could also indicate that there are outliers in our data or represent noise. The ANOVA results for `min.lm` are 2.2e-16, suggesting that the expression of the gene measured by this probe has a meaningful relationship with the age of the naked mole rat. 
@@ -112,6 +113,7 @@ geodata[["GSE174777_series_matrix.txt.gz"]]@experimentData@other[["summary"]]
 geodata[["GSE174777_series_matrix.txt.gz"]]@phenoData@data[["data_processing"]][1]
 ```
 **Discussion**
+
 From the summary, we can see that this data was generated using a microarray platform, and normalization was performed using SeSAMe. According to the referenced article, SeSAMe is an R package designed to reduce errors in DNA methylation data from Illumina methylation-specific arrays. These errors arise due to high genetic variation or potential deletions in fragment DNA, which can lead to misleading methylation signals. SeSAMe uses pOOBAH as its p-value method to mask problematic probes, which reduces false-positive methylation signals and correcting for batch effects due to technical variation [1]. 
 
 If the data had not been normalized, I would expect a larger number of errors in the data, visualized as false-positive methylation signals. These false positives could impact the linear model, which aims to find a line with the sum of least squares. If our linear model is skewed, two things can occur: first, we would have more discrepancies at the head and tail ends of the model; second, it would adjust the p-value from the ANOVA test, which could result in our probe with the highest correlation to age not truly reflecting a strong biological relationship but instead being an error or noise. 
