@@ -13,3 +13,10 @@ rm(list = ls())
 
 #remove all variables from environment except x and y
 rm(list=setdiff(ls(), c("x", "y")))
+
+#remember to install ALL package before you can access it
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("ALL")
+library(ALL) 
+data(ALL)
