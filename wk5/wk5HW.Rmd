@@ -1,0 +1,42 @@
+---
+title: Week 5 Homework 
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: 
+  html_notebook:
+    code_folding: 
+    number_sections: true
+---
+load data
+pData organized as [patients, variables] where tumor and normal sample id's are columns 2,3
+mrnaData organized as [genes, samples] where mrnaData[,1] is gene name, then [,2:104] tumor samples, and [,105:207] normal samples.  
+```{r}
+mrnaData <- read.table("TCGA_BRCA_mRNA_expression.csv",header= T, sep = ",")
+pData <- read.table("TCGA_BRCA_clinical_data.csv", header=T, sep=",")
+
+```
+
+
+> 1. 10 points Investigate whether the ERBB2 (HER2) mRNA expression is significantly different between normal and tumor tissues. Perform both an unpaired t-test and a paired t-test. Clearly explain the results from each test and discuss which test is more appropriate for answering this question. Ensure that you state the null hypothesis clearly and indicate whether you accept or reject it based on the results obtained.
+
+1. create df for each outcome [sample, ERBB2].  
+2. H0 = no significant difference ERBB2 expression b/w tumor and normal samples.  
+3. is data normalized
+
+```{r}
+#remove all but mrnaData, pData
+rm(list=setdiff(ls(), c("mrnaData", "pData")))
+```
+
+```{r}
+# create df for ERBB2 with each outcome
+tumor.erbb2 <- mrnaData[mrnaData$X=="ERBB2", pData$Sample_ID_Tumor]; rownames(tumor.erbb2) <- "ERBB2"
+tumor.erbb2 <- t(tumor.erbb2)
+normal.erbb2 <- mrnaData[mrnaData$X=="ERBB2", pData$Sample_ID_Normal]; rownames(normal.erbb2) <- "ERBB2"
+normal.erbb2 <- t(normal.erbb2)
+
+#check for normality
+shapiro.test(tumor.erbb2)
+shapiro.test(normal.erbb2)
+```
+p-value for each is <0.05, data is not normal -> perform t-test on repeated samples of means. n > 30. 
