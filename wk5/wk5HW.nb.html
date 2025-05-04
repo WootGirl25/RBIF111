@@ -1746,7 +1746,7 @@ display: none;
 
 <h1 class="title toc-ignore">Week 5 Homework</h1>
 <h4 class="author">Author: Laura Wooten</h4>
-<h4 class="date">Last update: 01 May, 2025</h4>
+<h4 class="date">Last update: 04 May, 2025</h4>
 
 </div>
 
@@ -1778,28 +1778,22 @@ whether you accept or reject it based on the results obtained.</li>
 </ol>
 </blockquote>
 <ol style="list-style-type: decimal">
-<li>create df for each outcome [sample, ERBB2].<br />
+<li>Create df for each outcome [sample, ERBB2].<br />
 </li>
 <li>H0 = no significant difference ERBB2 expression b/w tumor and normal
 samples.<br />
 </li>
-<li>is data normalized</li>
+<li>Is data normalized, no -&gt; pull samples for each outcome.<br />
+</li>
+<li>Perform t-test on sample data.</li>
 </ol>
 <!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVJM0psYlc5MlpTQmhiR3dnWW5WMElHMXlibUZFWVhSaExDQndSR0YwWVZ4dWNtMG9iR2x6ZEQxelpYUmthV1ptS0d4ektDa3NJR01vWENKdGNtNWhSR0YwWVZ3aUxDQmNJbkJFWVhSaFhDSXBLU2xjYm1CZ1lDSjkgLS0+XG5cbmBgYHJcbiNyZW1vdmUgYWxsIGJ1dCBtcm5hRGF0YSwgcERhdGFcbnJtKGxpc3Q9c2V0ZGlmZihscygpLCBjKFwibXJuYURhdGFcIiwgXCJwRGF0YVwiKSkpXG5gYGBcblxuPCEtLSBybmItc291cmNlLWVuZCAtLT5cbiJ9 -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3JlbW92ZSBhbGwgYnV0IG1ybmFEYXRhLCBwRGF0YVxucm0obGlzdD1zZXRkaWZmKGxzKCksIGMoXCJtcm5hRGF0YVwiLCBcInBEYXRhXCIpKSlcbmBgYCJ9 -->
-<pre class="r"><code>#remove all but mrnaData, pData
-rm(list=setdiff(ls(), c(&quot;mrnaData&quot;, &quot;pData&quot;)))</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-end -->
-<!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVJeUJqY21WaGRHVWdaR1lnWm05eUlFVlNRa0l5SUhkcGRHZ2daV0ZqYUNCdmRYUmpiMjFsWEc1MGRXMXZjaTVsY21KaU1pQThMU0J0Y201aFJHRjBZVnR0Y201aFJHRjBZU1JZUFQxY0lrVlNRa0l5WENJc0lIQkVZWFJoSkZOaGJYQnNaVjlKUkY5VWRXMXZjbDA3SUhKdmQyNWhiV1Z6S0hSMWJXOXlMbVZ5WW1JeUtTQThMU0JjSWtWU1FrSXlYQ0pjYm5SMWJXOXlMbVZ5WW1JeUlEd3RJSFFvZEhWdGIzSXVaWEppWWpJcFhHNXViM0p0WVd3dVpYSmlZaklnUEMwZ2JYSnVZVVJoZEdGYmJYSnVZVVJoZEdFa1dEMDlYQ0pGVWtKQ01sd2lMQ0J3UkdGMFlTUlRZVzF3YkdWZlNVUmZUbTl5YldGc1hUc2djbTkzYm1GdFpYTW9ibTl5YldGc0xtVnlZbUl5S1NBOExTQmNJa1ZTUWtJeVhDSmNibTV2Y20xaGJDNWxjbUppTWlBOExTQjBLRzV2Y20xaGJDNWxjbUppTWlsY2JseHVJMk5vWldOcklHWnZjaUJ1YjNKdFlXeHBkSGxjYm5Ob1lYQnBjbTh1ZEdWemRDaDBkVzF2Y2k1bGNtSmlNaWxjYm1CZ1lDSjkgLS0+XG5cbmBgYHJcbiMgY3JlYXRlIGRmIGZvciBFUkJCMiB3aXRoIGVhY2ggb3V0Y29tZVxudHVtb3IuZXJiYjIgPC0gbXJuYURhdGFbbXJuYURhdGEkWD09XCJFUkJCMlwiLCBwRGF0YSRTYW1wbGVfSURfVHVtb3JdOyByb3duYW1lcyh0dW1vci5lcmJiMikgPC0gXCJFUkJCMlwiXG50dW1vci5lcmJiMiA8LSB0KHR1bW9yLmVyYmIyKVxubm9ybWFsLmVyYmIyIDwtIG1ybmFEYXRhW21ybmFEYXRhJFg9PVwiRVJCQjJcIiwgcERhdGEkU2FtcGxlX0lEX05vcm1hbF07IHJvd25hbWVzKG5vcm1hbC5lcmJiMikgPC0gXCJFUkJCMlwiXG5ub3JtYWwuZXJiYjIgPC0gdChub3JtYWwuZXJiYjIpXG5cbiNjaGVjayBmb3Igbm9ybWFsaXR5XG5zaGFwaXJvLnRlc3QodHVtb3IuZXJiYjIpXG5gYGBcblxuPCEtLSBybmItc291cmNlLWVuZCAtLT5cbiJ9 -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBjcmVhdGUgZGYgZm9yIEVSQkIyIHdpdGggZWFjaCBvdXRjb21lXG50dW1vci5lcmJiMiA8LSBtcm5hRGF0YVttcm5hRGF0YSRYPT1cIkVSQkIyXCIsIHBEYXRhJFNhbXBsZV9JRF9UdW1vcl07IHJvd25hbWVzKHR1bW9yLmVyYmIyKSA8LSBcIkVSQkIyXCJcbnR1bW9yLmVyYmIyIDwtIHQodHVtb3IuZXJiYjIpXG5ub3JtYWwuZXJiYjIgPC0gbXJuYURhdGFbbXJuYURhdGEkWD09XCJFUkJCMlwiLCBwRGF0YSRTYW1wbGVfSURfTm9ybWFsXTsgcm93bmFtZXMobm9ybWFsLmVyYmIyKSA8LSBcIkVSQkIyXCJcbm5vcm1hbC5lcmJiMiA8LSB0KG5vcm1hbC5lcmJiMilcblxuI2NoZWNrIGZvciBub3JtYWxpdHlcbnNoYXBpcm8udGVzdCh0dW1vci5lcmJiMilcbmBgYCJ9 -->
-<pre class="r"><code># create df for ERBB2 with each outcome
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVJeUJRWVhKMGFYUnBiMjRnWkdGMFlTQm1iM0lnUlZKQ1FqSWdkMmwwYUNCbFlXTm9JRzkxZEdOdmJXVmNiblIxYlc5eUxtVnlZbUl5SUR3dElHMXlibUZFWVhSaFcyMXlibUZFWVhSaEpGZzlQVndpUlZKQ1FqSmNJaXdnY0VSaGRHRWtVMkZ0Y0d4bFgwbEVYMVIxYlc5eVhUc2djbTkzYm1GdFpYTW9kSFZ0YjNJdVpYSmlZaklwSUR3dElGd2lSVkpDUWpKY0lseHVkSFZ0YjNJdVpYSmlZaklnUEMwZ2RDaDBkVzF2Y2k1bGNtSmlNaWxjYm01dmNtMWhiQzVsY21KaU1pQThMU0J0Y201aFJHRjBZVnR0Y201aFJHRjBZU1JZUFQxY0lrVlNRa0l5WENJc0lIQkVZWFJoSkZOaGJYQnNaVjlKUkY5T2IzSnRZV3hkT3lCeWIzZHVZVzFsY3lodWIzSnRZV3d1WlhKaVlqSXBJRHd0SUZ3aVJWSkNRakpjSWx4dWJtOXliV0ZzTG1WeVltSXlJRHd0SUhRb2JtOXliV0ZzTG1WeVltSXlLVnh1WEc0alkyaGxZMnNnWm05eUlHNXZjbTFoYkdsMGVWeHVjMmhoY0dseWJ5NTBaWE4wS0hSMWJXOXlMbVZ5WW1JeUtWeHVZR0JnSW4wPSAtLT5cblxuYGBgclxuIyBQYXJ0aXRpb24gZGF0YSBmb3IgRVJCQjIgd2l0aCBlYWNoIG91dGNvbWVcbnR1bW9yLmVyYmIyIDwtIG1ybmFEYXRhW21ybmFEYXRhJFg9PVwiRVJCQjJcIiwgcERhdGEkU2FtcGxlX0lEX1R1bW9yXTsgcm93bmFtZXModHVtb3IuZXJiYjIpIDwtIFwiRVJCQjJcIlxudHVtb3IuZXJiYjIgPC0gdCh0dW1vci5lcmJiMilcbm5vcm1hbC5lcmJiMiA8LSBtcm5hRGF0YVttcm5hRGF0YSRYPT1cIkVSQkIyXCIsIHBEYXRhJFNhbXBsZV9JRF9Ob3JtYWxdOyByb3duYW1lcyhub3JtYWwuZXJiYjIpIDwtIFwiRVJCQjJcIlxubm9ybWFsLmVyYmIyIDwtIHQobm9ybWFsLmVyYmIyKVxuXG4jY2hlY2sgZm9yIG5vcm1hbGl0eVxuc2hhcGlyby50ZXN0KHR1bW9yLmVyYmIyKVxuYGBgXG5cbjwhLS0gcm5iLXNvdXJjZS1lbmQgLS0+XG4ifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBQYXJ0aXRpb24gZGF0YSBmb3IgRVJCQjIgd2l0aCBlYWNoIG91dGNvbWVcbnR1bW9yLmVyYmIyIDwtIG1ybmFEYXRhW21ybmFEYXRhJFg9PVwiRVJCQjJcIiwgcERhdGEkU2FtcGxlX0lEX1R1bW9yXTsgcm93bmFtZXModHVtb3IuZXJiYjIpIDwtIFwiRVJCQjJcIlxudHVtb3IuZXJiYjIgPC0gdCh0dW1vci5lcmJiMilcbm5vcm1hbC5lcmJiMiA8LSBtcm5hRGF0YVttcm5hRGF0YSRYPT1cIkVSQkIyXCIsIHBEYXRhJFNhbXBsZV9JRF9Ob3JtYWxdOyByb3duYW1lcyhub3JtYWwuZXJiYjIpIDwtIFwiRVJCQjJcIlxubm9ybWFsLmVyYmIyIDwtIHQobm9ybWFsLmVyYmIyKVxuXG4jY2hlY2sgZm9yIG5vcm1hbGl0eVxuc2hhcGlyby50ZXN0KHR1bW9yLmVyYmIyKVxuYGBgIn0= -->
+<pre class="r"><code># Partition data for ERBB2 with each outcome
 tumor.erbb2 &lt;- mrnaData[mrnaData$X==&quot;ERBB2&quot;, pData$Sample_ID_Tumor]; rownames(tumor.erbb2) &lt;- &quot;ERBB2&quot;
 tumor.erbb2 &lt;- t(tumor.erbb2)
 normal.erbb2 &lt;- mrnaData[mrnaData$X==&quot;ERBB2&quot;, pData$Sample_ID_Normal]; rownames(normal.erbb2) &lt;- &quot;ERBB2&quot;
@@ -1830,11 +1824,254 @@ W = 0.90465, p-value = 1.746e-06</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>p-value for each is &lt;0.05, data is not normal -&gt; perform t-test
-on repeated samples of means. n &gt; 30.</p>
+<p>p-value for each is &lt;0.05, data is not normal -&gt; perform
+t-tests on means of repeated samples.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVZM0psWVhSbFgzTmhiWEJzWlY5dFpXRnVjeUE4TFNCbWRXNWpkR2x2YmlodFlYUnlhWGhmWTI5c0xDQnlaWEJzYVdOaGRHVnpMQ0J6YlhCc0xuTnBlbVVwZTF4dUlDQnpiWEJzTG0xbFlXNXpJRHd0SUc1MWJXVnlhV01vY21Wd2JHbGpZWFJsY3lsY2JpQWdabTl5SUNocElHbHVJREU2Y21Wd2JHbGpZWFJsY3lsN1hHNGdJQ0FnZEcxd0xuTnRjR3dnUEMwZ2MyRnRjR3hsS0cxaGRISnBlRjlqYjJ4YklXbHpMbTVoS0cxaGRISnBlRjlqYjJ3cFhTd2djMjF3YkM1emFYcGxMQ0J5WlhCc1lXTmxJRDBnVkNrZ0kzTmxkQ0IwYnlCeVpYQnNZV05sSUhOdklIUm9ZWFFnWldGamFDQnpZVzF3YkdVZ2FYTWdhVzVrWlhCbGJtUmxiblJjYmlBZ0lDQjBiWEF1YlhVZ1BDMGdiV1ZoYmloMGJYQXVjMjF3YkNsY2JpQWdJQ0J6YlhCc0xtMWxZVzV6VzJsZElEd3RJSFJ0Y0M1dGRWeHVJQ0I5WEc0Z0lISmxkSFZ5YmloemJYQnNMbTFsWVc1ektWeHVmVnh1WEc1Z1lHQWlmUT09IC0tPlxuXG5gYGByXG5jcmVhdGVfc2FtcGxlX21lYW5zIDwtIGZ1bmN0aW9uKG1hdHJpeF9jb2wsIHJlcGxpY2F0ZXMsIHNtcGwuc2l6ZSl7XG4gIHNtcGwubWVhbnMgPC0gbnVtZXJpYyhyZXBsaWNhdGVzKVxuICBmb3IgKGkgaW4gMTpyZXBsaWNhdGVzKXtcbiAgICB0bXAuc21wbCA8LSBzYW1wbGUobWF0cml4X2NvbFshaXMubmEobWF0cml4X2NvbCldLCBzbXBsLnNpemUsIHJlcGxhY2UgPSBUKSAjc2V0IHRvIHJlcGxhY2Ugc28gdGhhdCBlYWNoIHNhbXBsZSBpcyBpbmRlcGVuZGVudFxuICAgIHRtcC5tdSA8LSBtZWFuKHRtcC5zbXBsKVxuICAgIHNtcGwubWVhbnNbaV0gPC0gdG1wLm11XG4gIH1cbiAgcmV0dXJuKHNtcGwubWVhbnMpXG59XG5cbmBgYFxuXG48IS0tIHJuYi1zb3VyY2UtZW5kIC0tPlxuIn0= -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY3JlYXRlX3NhbXBsZV9tZWFucyA8LSBmdW5jdGlvbihtYXRyaXhfY29sLCByZXBsaWNhdGVzLCBzbXBsLnNpemUpe1xuICBzbXBsLm1lYW5zIDwtIG51bWVyaWMocmVwbGljYXRlcylcbiAgZm9yIChpIGluIDE6cmVwbGljYXRlcyl7XG4gICAgdG1wLnNtcGwgPC0gc2FtcGxlKG1hdHJpeF9jb2xbIWlzLm5hKG1hdHJpeF9jb2wpXSwgc21wbC5zaXplLCByZXBsYWNlID0gVCkgI3NldCB0byByZXBsYWNlIHNvIHRoYXQgZWFjaCBzYW1wbGUgaXMgaW5kZXBlbmRlbnRcbiAgICB0bXAubXUgPC0gbWVhbih0bXAuc21wbClcbiAgICBzbXBsLm1lYW5zW2ldIDwtIHRtcC5tdVxuICB9XG4gIHJldHVybihzbXBsLm1lYW5zKVxufVxuXG5gYGAifQ== -->
+<pre class="r"><code>create_sample_means &lt;- function(matrix_col, replicates, smpl.size){
+  smpl.means &lt;- numeric(replicates)
+  for (i in 1:replicates){
+    tmp.smpl &lt;- sample(matrix_col[!is.na(matrix_col)], smpl.size, replace = T) #set to replace so that each sample is independent
+    tmp.mu &lt;- mean(tmp.smpl)
+    smpl.means[i] &lt;- tmp.mu
+  }
+  return(smpl.means)
+}
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVJME5oYkd3Z1puVnVZM1JwYjI0Z1lXNWtJSEJsY21aeWIyMGdkQzEwWlhOMGN5NWNiblF1TVd0dGRTQThMU0JqY21WaGRHVmZjMkZ0Y0d4bFgyMWxZVzV6S0hSMWJXOXlMbVZ5WW1JeVd6RmRMQ0F4TURBd0xDQXpNQ2xjYm00dU1XdHRkU0E4TFNCamNtVmhkR1ZmYzJGdGNHeGxYMjFsWVc1ektHNXZjbTFoYkM1bGNtSmlNbHN4WFN3Z01UQXdNQ3dnTXpBcFhHNWNiblF1ZEdWemRDaDBMakZyYlhVc0lHNHVNV3R0ZFN3Z2NHRnBjbVZrUFNCVUtWeHVZR0JnSW4wPSAtLT5cblxuYGBgclxuI0NhbGwgZnVuY3Rpb24gYW5kIHBlcmZyb20gdC10ZXN0cy5cbnQuMWttdSA8LSBjcmVhdGVfc2FtcGxlX21lYW5zKHR1bW9yLmVyYmIyWzFdLCAxMDAwLCAzMClcbm4uMWttdSA8LSBjcmVhdGVfc2FtcGxlX21lYW5zKG5vcm1hbC5lcmJiMlsxXSwgMTAwMCwgMzApXG5cbnQudGVzdCh0LjFrbXUsIG4uMWttdSwgcGFpcmVkPSBUKVxuYGBgXG5cbjwhLS0gcm5iLXNvdXJjZS1lbmQgLS0+XG4ifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI0NhbGwgZnVuY3Rpb24gYW5kIHBlcmZyb20gdC10ZXN0cy5cbnQuMWttdSA8LSBjcmVhdGVfc2FtcGxlX21lYW5zKHR1bW9yLmVyYmIyWzFdLCAxMDAwLCAzMClcbm4uMWttdSA8LSBjcmVhdGVfc2FtcGxlX21lYW5zKG5vcm1hbC5lcmJiMlsxXSwgMTAwMCwgMzApXG5cbnQudGVzdCh0LjFrbXUsIG4uMWttdSwgcGFpcmVkPSBUKVxuYGBgIn0= -->
+<pre class="r"><code>#Call function and perfrom t-tests.
+t.1kmu &lt;- create_sample_means(tumor.erbb2[1], 1000, 30)
+n.1kmu &lt;- create_sample_means(normal.erbb2[1], 1000, 30)
+
+t.test(t.1kmu, n.1kmu, paired= T)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdFBhaXJlZCB0LXRlc3RcblxuZGF0YTogIHQuMWttdSBhbmQgbi4xa211XG50ID0gOS42NjA2LCBkZiA9IDk5OSwgcC12YWx1ZSA8IDIuMmUtMTZcbmFsdGVybmF0aXZlIGh5cG90aGVzaXM6IHRydWUgbWVhbiBkaWZmZXJlbmNlIGlzIG5vdCBlcXVhbCB0byAwXG45NSBwZXJjZW50IGNvbmZpZGVuY2UgaW50ZXJ2YWw6XG4gMzkwLjYwMTMgNTg5LjczNTFcbnNhbXBsZSBlc3RpbWF0ZXM6XG5tZWFuIGRpZmZlcmVuY2UgXG4gICAgICAgNDkwLjE2ODIgXG4ifQ== -->
+<pre><code>
+    Paired t-test
+
+data:  t.1kmu and n.1kmu
+t = 9.6606, df = 999, p-value &lt; 2.2e-16
+alternative hypothesis: true mean difference is not equal to 0
+95 percent confidence interval:
+ 390.6013 589.7351
+sample estimates:
+mean difference 
+       490.1682 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVkQzUwWlhOMEtIUXVNV3R0ZFN3Z2JpNHhhMjExS1Z4dVlHQmdJbjA9IC0tPlxuXG5gYGByXG50LnRlc3QodC4xa211LCBuLjFrbXUpXG5gYGBcblxuPCEtLSBybmItc291cmNlLWVuZCAtLT5cbiJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudC50ZXN0KHQuMWttdSwgbi4xa211KVxuYGBgIn0= -->
+<pre class="r"><code>t.test(t.1kmu, n.1kmu)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5cdFdlbGNoIFR3byBTYW1wbGUgdC10ZXN0XG5cbmRhdGE6ICB0LjFrbXUgYW5kIG4uMWttdVxudCA9IDkuNjc4LCBkZiA9IDE5NzkuNywgcC12YWx1ZSA8IDIuMmUtMTZcbmFsdGVybmF0aXZlIGh5cG90aGVzaXM6IHRydWUgZGlmZmVyZW5jZSBpbiBtZWFucyBpcyBub3QgZXF1YWwgdG8gMFxuOTUgcGVyY2VudCBjb25maWRlbmNlIGludGVydmFsOlxuIDM5MC44NDAyIDU4OS40OTYxXG5zYW1wbGUgZXN0aW1hdGVzOlxubWVhbiBvZiB4IG1lYW4gb2YgeSBcbiAxMTE0My41MCAgMTA2NTMuMzMgXG4ifQ== -->
+<pre><code>
+    Welch Two Sample t-test
+
+data:  t.1kmu and n.1kmu
+t = 9.678, df = 1979.7, p-value &lt; 2.2e-16
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 390.8402 589.4961
+sample estimates:
+mean of x mean of y 
+ 11143.50  10653.33 </code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p><strong>DISCUSS</strong><br />
+- done, in document.</p>
+<blockquote>
+<ol start="2" style="list-style-type: decimal">
+<li>20 points Analyze the correlation between ERBB2 (HER2) mRNA
+expression and RPPA protein levels in HER2-IHC negative patients.
+Calculate both the Pearson and Spearman correlation coefficients, along
+with their respective p-values, for ERBB2 mRNA and RPPA protein levels.
+Clearly explain the results from each correlation method and discuss
+which method is more appropriate for this analysis. Ensure you state the
+null hypothesis clearly and indicate whether you accept or reject it
+based on the results obtained.</li>
+</ol>
+</blockquote>
+<ol style="list-style-type: decimal">
+<li>I believe this questing is asking correlation between ERBB2 mRNA and
+ERBB2 RPPA protein levels (not ERBB2 mRNA with all PRRPA prot
+levels).<br />
+</li>
+<li>subset data - HER-IHC negative patients, Variables= X-ERBB2mRNA,
+Y-ERBB2prot, (protein data only looks at tumor samples).<br />
+</li>
+<li>H0 = There is no correlation between ERBB2 mRNA expression and PRRPA
+levels in HER2-IHC negative patients.</li>
+</ol>
+<!-- rnb-text-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVJMnhwYzNRZ2IyWWdjMkZ0Y0d4bGN5QjNhR1Z5WlNCb1pYSXRhV05vSUQwOUlHNWxaMkYwYVhabFhHNXVaV2RvWlhJdWMyMXdiSE1nUEMwZ2NFUmhkR0ZiY0VSaGRHRWtTVWhEU0VWU01qMDlYQ0pPWldkaGRHbDJaVndpSUNZZ0lXbHpMbTVoS0hCRVlYUmhKRWxJUTBoRlVqSXBMRndpVTJGdGNHeGxYMGxFWDFSMWJXOXlYQ0pkWEc0amNIVnNiQ0JtY205dElHMXlibUVnSmlCd2NtOTBJR1JtSjNOY2JtMXlibUZmYm1WbmFHVnlJRHd0SUcxeWJtRkVZWFJoVzIxeWJtRkVZWFJoSkZnZ1BUMGdYQ0pGVWtKQ01sd2lMQ0J1Wldkb1pYSXVjMjF3YkhOZFhHNXdjbTkwWDI1bFoyaGxjaUE4TFNCd2NtOTBSR0YwWVZ0d2NtOTBSR0YwWVNSWUlEMDlJRndpUlZKQ1FqSmNJaXdnYm1WbmFHVnlMbk50Y0d4elhWeHVjbTkzYm1GdFpYTW9iWEp1WVY5dVpXZG9aWElwSUR3dElGd2liWEp1WVY5bGNtSmlNbHdpTzNKdmQyNWhiV1Z6S0hCeWIzUmZibVZuYUdWeUtTQThMU0JjSW5CeWIzUmZaWEppWWpKY0lseHVJMjFsY21kbElGeHVibVZuYUdWeVgyVnlZbUl5WDJSbUlEd3RJSEppYVc1a0tHMXlibUZmYm1WbmFHVnlMQ0J3Y205MFgyNWxaMmhsY2lsY2JseHVYRzVsY21KaU1sOXdaV0Z5YzI5dUlEd3RJR052Y2k1MFpYTjBLR0Z6TG01MWJXVnlhV01vYm1WbmFHVnlYMlZ5WW1JeVgyUm1XekVzWFNrc0lHRnpMbTUxYldWeWFXTW9ibVZuYUdWeVgyVnlZbUl5WDJSbVd6SXNYU2tzSUcxbGRHaHZaQ0E5SUZ3aWNHVmhjbk52Ymx3aUtWeHVjSEpwYm5Rb1hDSlFMWFpoYkhWbElHWnZjaUJRWldGeWMyOXVJR052Y25KbGJHRjBhVzl1T2x3aUxHVnlZbUl5WDNCbFlYSnpiMjRrY0M1MllXeDFaU2xjYm1CZ1lDSjkgLS0+XG5cbmBgYHJcbiNsaXN0IG9mIHNhbXBsZXMgd2hlcmUgaGVyLWljaCA9PSBuZWdhdGl2ZVxubmVnaGVyLnNtcGxzIDwtIHBEYXRhW3BEYXRhJElIQ0hFUjI9PVwiTmVnYXRpdmVcIiAmICFpcy5uYShwRGF0YSRJSENIRVIyKSxcIlNhbXBsZV9JRF9UdW1vclwiXVxuI3B1bGwgZnJvbSBtcm5hICYgcHJvdCBkZidzXG5tcm5hX25lZ2hlciA8LSBtcm5hRGF0YVttcm5hRGF0YSRYID09IFwiRVJCQjJcIiwgbmVnaGVyLnNtcGxzXVxucHJvdF9uZWdoZXIgPC0gcHJvdERhdGFbcHJvdERhdGEkWCA9PSBcIkVSQkIyXCIsIG5lZ2hlci5zbXBsc11cbnJvd25hbWVzKG1ybmFfbmVnaGVyKSA8LSBcIm1ybmFfZXJiYjJcIjtyb3duYW1lcyhwcm90X25lZ2hlcikgPC0gXCJwcm90X2VyYmIyXCJcbiNtZXJnZSBcbm5lZ2hlcl9lcmJiMl9kZiA8LSByYmluZChtcm5hX25lZ2hlciwgcHJvdF9uZWdoZXIpXG5cblxuZXJiYjJfcGVhcnNvbiA8LSBjb3IudGVzdChhcy5udW1lcmljKG5lZ2hlcl9lcmJiMl9kZlsxLF0pLCBhcy5udW1lcmljKG5lZ2hlcl9lcmJiMl9kZlsyLF0pLCBtZXRob2QgPSBcInBlYXJzb25cIilcbnByaW50KFwiUC12YWx1ZSBmb3IgUGVhcnNvbiBjb3JyZWxhdGlvbjpcIixlcmJiMl9wZWFyc29uJHAudmFsdWUpXG5gYGBcblxuPCEtLSBybmItc291cmNlLWVuZCAtLT5cbiJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI2xpc3Qgb2Ygc2FtcGxlcyB3aGVyZSBoZXItaWNoID09IG5lZ2F0aXZlXG5uZWdoZXIuc21wbHMgPC0gcERhdGFbcERhdGEkSUhDSEVSMj09XCJOZWdhdGl2ZVwiICYgIWlzLm5hKHBEYXRhJElIQ0hFUjIpLFwiU2FtcGxlX0lEX1R1bW9yXCJdXG4jcHVsbCBmcm9tIG1ybmEgJiBwcm90IGRmJ3Ncbm1ybmFfbmVnaGVyIDwtIG1ybmFEYXRhW21ybmFEYXRhJFggPT0gXCJFUkJCMlwiLCBuZWdoZXIuc21wbHNdXG5wcm90X25lZ2hlciA8LSBwcm90RGF0YVtwcm90RGF0YSRYID09IFwiRVJCQjJcIiwgbmVnaGVyLnNtcGxzXVxucm93bmFtZXMobXJuYV9uZWdoZXIpIDwtIFwibXJuYV9lcmJiMlwiO3Jvd25hbWVzKHByb3RfbmVnaGVyKSA8LSBcInByb3RfZXJiYjJcIlxuI21lcmdlIFxubmVnaGVyX2VyYmIyX2RmIDwtIHJiaW5kKG1ybmFfbmVnaGVyLCBwcm90X25lZ2hlcilcblxuXG5lcmJiMl9wZWFyc29uIDwtIGNvci50ZXN0KGFzLm51bWVyaWMobmVnaGVyX2VyYmIyX2RmWzEsXSksIGFzLm51bWVyaWMobmVnaGVyX2VyYmIyX2RmWzIsXSksIG1ldGhvZCA9IFwicGVhcnNvblwiKVxucHJpbnQoXCJQLXZhbHVlIGZvciBQZWFyc29uIGNvcnJlbGF0aW9uOlwiLGVyYmIyX3BlYXJzb24kcC52YWx1ZSlcbmBgYCJ9 -->
+<pre class="r"><code>#list of samples where her-ich == negative
+negher.smpls &lt;- pData[pData$IHCHER2==&quot;Negative&quot; &amp; !is.na(pData$IHCHER2),&quot;Sample_ID_Tumor&quot;]
+#pull from mrna &amp; prot df&#39;s
+mrna_negher &lt;- mrnaData[mrnaData$X == &quot;ERBB2&quot;, negher.smpls]
+prot_negher &lt;- protData[protData$X == &quot;ERBB2&quot;, negher.smpls]
+rownames(mrna_negher) &lt;- &quot;mrna_erbb2&quot;;rownames(prot_negher) &lt;- &quot;prot_erbb2&quot;
+#merge 
+negher_erbb2_df &lt;- rbind(mrna_negher, prot_negher)
+
+
+erbb2_pearson &lt;- cor.test(as.numeric(negher_erbb2_df[1,]), as.numeric(negher_erbb2_df[2,]), method = &quot;pearson&quot;)
+print(&quot;P-value for Pearson correlation:&quot;,erbb2_pearson$p.value)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gcHJpbnQuZGVmYXVsdChcIlAtdmFsdWUgZm9yIFBlYXJzb24gY29ycmVsYXRpb246XCIsIGVyYmIyX3BlYXJzb24kcC52YWx1ZSkgOiBcbiAgaW52YWxpZCBwcmludGluZyBkaWdpdHMgMFxuIn0= -->
+<pre><code>Error in print.default(&quot;P-value for Pearson correlation:&quot;, erbb2_pearson$p.value) : 
+  invalid printing digits 0</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p><strong>DISCUSS</strong></p>
+<blockquote>
+<ol start="3" style="list-style-type: decimal">
+<li>20 points In breast cancer diagnostics, HER2 and ER statuses are
+critical biomarkers that influence treatment decisions. Oncologists are
+interested in the relationship between HER2-IHC and ER-IHC statuses in
+breast cancer patients. Please perform a test to determine if there is a
+significant association between HER2 and ER statuses in these patients.
+Ensure you state the null hypothesis clearly and indicate whether you
+accept or reject the null hypothesis based on the results obtained.
+(Only consider IHC positive and negative records, and remove NA,
+equivocal, and indeterminate records).</li>
+</ol>
+</blockquote>
+<ol style="list-style-type: decimal">
+<li>create vector for HER2-IHC, and ER-IHC.<br />
+</li>
+<li>Categorical variables - contingency tables.<br />
+</li>
+<li>H0 = There is no association between HER2 and ER statuses</li>
+</ol>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVhR1Z5TWw5bGNpQThMU0JrWVhSaExtWnlZVzFsS0Z4dUlDQm9aWEl5UFNCd1JHRjBZVnNoYVhNdWJtRW9jRVJoZEdFa1NVaERTRVZTTWlrZ0ppQndSR0YwWVNSSlNFTklSVkl5SUNWcGJpVWdZeWhjSWxCdmMybDBhWFpsWENJc0lGd2lUbVZuWVhScGRtVmNJaWtnSmx4dUlDQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNGcGN5NXVZU2h3UkdGMFlTUkZVbDlUZEdGMGRYTmZRbmxmU1VoREtTQW1JRnh1SUNBZ0lDQWdJQ0FnSUNBZ0lDQWdJSEJFWVhSaEpFVlNYMU4wWVhSMWMxOUNlVjlKU0VNZ0pXbHVKU0JqS0Z3aVVHOXphWFJwZG1WY0lpd2dYQ0pPWldkaGRHbDJaVndpS1N3Z1hDSkpTRU5JUlZJeVhDSmRMRnh1SUNCbGNqMGdjRVJoZEdGYklXbHpMbTVoS0hCRVlYUmhKRWxJUTBoRlVqSXBJQ1lnY0VSaGRHRWtTVWhEU0VWU01pQWxhVzRsSUdNb1hDSlFiM05wZEdsMlpWd2lMQ0JjSWs1bFoyRjBhWFpsWENJcElDWmNiaUFnSUNBZ0lDQWdJQ0FnSUNBZ0lDQWhhWE11Ym1Fb2NFUmhkR0VrUlZKZlUzUmhkSFZ6WDBKNVgwbElReWtnSmlCY2JpQWdJQ0FnSUNBZ0lDQWdJQ0FnSUNCd1JHRjBZU1JGVWw5VGRHRjBkWE5mUW5sZlNVaERJQ1ZwYmlVZ1l5aGNJbEJ2YzJsMGFYWmxYQ0lzSUZ3aVRtVm5ZWFJwZG1WY0lpa3NJRndpUlZKZlUzUmhkSFZ6WDBKNVgwbElRMXdpWFZ4dUtWeHVZR0JnSW4wPSAtLT5cblxuYGBgclxuaGVyMl9lciA8LSBkYXRhLmZyYW1lKFxuICBoZXIyPSBwRGF0YVshaXMubmEocERhdGEkSUhDSEVSMikgJiBwRGF0YSRJSENIRVIyICVpbiUgYyhcIlBvc2l0aXZlXCIsIFwiTmVnYXRpdmVcIikgJlxuICAgICAgICAgICAgICAgICFpcy5uYShwRGF0YSRFUl9TdGF0dXNfQnlfSUhDKSAmIFxuICAgICAgICAgICAgICAgIHBEYXRhJEVSX1N0YXR1c19CeV9JSEMgJWluJSBjKFwiUG9zaXRpdmVcIiwgXCJOZWdhdGl2ZVwiKSwgXCJJSENIRVIyXCJdLFxuICBlcj0gcERhdGFbIWlzLm5hKHBEYXRhJElIQ0hFUjIpICYgcERhdGEkSUhDSEVSMiAlaW4lIGMoXCJQb3NpdGl2ZVwiLCBcIk5lZ2F0aXZlXCIpICZcbiAgICAgICAgICAgICAgICAhaXMubmEocERhdGEkRVJfU3RhdHVzX0J5X0lIQykgJiBcbiAgICAgICAgICAgICAgICBwRGF0YSRFUl9TdGF0dXNfQnlfSUhDICVpbiUgYyhcIlBvc2l0aXZlXCIsIFwiTmVnYXRpdmVcIiksIFwiRVJfU3RhdHVzX0J5X0lIQ1wiXVxuKVxuYGBgXG5cbjwhLS0gcm5iLXNvdXJjZS1lbmQgLS0+XG4ifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaGVyMl9lciA8LSBkYXRhLmZyYW1lKFxuICBoZXIyPSBwRGF0YVshaXMubmEocERhdGEkSUhDSEVSMikgJiBwRGF0YSRJSENIRVIyICVpbiUgYyhcIlBvc2l0aXZlXCIsIFwiTmVnYXRpdmVcIikgJlxuICAgICAgICAgICAgICAgICFpcy5uYShwRGF0YSRFUl9TdGF0dXNfQnlfSUhDKSAmIFxuICAgICAgICAgICAgICAgIHBEYXRhJEVSX1N0YXR1c19CeV9JSEMgJWluJSBjKFwiUG9zaXRpdmVcIiwgXCJOZWdhdGl2ZVwiKSwgXCJJSENIRVIyXCJdLFxuICBlcj0gcERhdGFbIWlzLm5hKHBEYXRhJElIQ0hFUjIpICYgcERhdGEkSUhDSEVSMiAlaW4lIGMoXCJQb3NpdGl2ZVwiLCBcIk5lZ2F0aXZlXCIpICZcbiAgICAgICAgICAgICAgICAhaXMubmEocERhdGEkRVJfU3RhdHVzX0J5X0lIQykgJiBcbiAgICAgICAgICAgICAgICBwRGF0YSRFUl9TdGF0dXNfQnlfSUhDICVpbiUgYyhcIlBvc2l0aXZlXCIsIFwiTmVnYXRpdmVcIiksIFwiRVJfU3RhdHVzX0J5X0lIQ1wiXVxuKVxuYGBgIn0= -->
+<pre class="r"><code>her2_er &lt;- data.frame(
+  her2= pData[!is.na(pData$IHCHER2) &amp; pData$IHCHER2 %in% c(&quot;Positive&quot;, &quot;Negative&quot;) &amp;
+                !is.na(pData$ER_Status_By_IHC) &amp; 
+                pData$ER_Status_By_IHC %in% c(&quot;Positive&quot;, &quot;Negative&quot;), &quot;IHCHER2&quot;],
+  er= pData[!is.na(pData$IHCHER2) &amp; pData$IHCHER2 %in% c(&quot;Positive&quot;, &quot;Negative&quot;) &amp;
+                !is.na(pData$ER_Status_By_IHC) &amp; 
+                pData$ER_Status_By_IHC %in% c(&quot;Positive&quot;, &quot;Negative&quot;), &quot;ER_Status_By_IHC&quot;]
+)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<blockquote>
+<ol start="4" style="list-style-type: decimal">
+<li>15 points Please construct a regression model with “fraction genome
+altered” as the input and “tumor mutation burden” (TMB_nonsynonymous) as
+the output. Calculate the 95% confidence interval for the regression
+coefficients. Explain the coefficients, their 95% CI, and the associated
+p-value for fraction genome altered. Additionally, explain the R-squared
+value and why it’s important for a regression model.</li>
+</ol>
+</blockquote>
+<ol style="list-style-type: decimal">
+<li>Independent continuous variable = fraction_genome_altered, dependent
+continuous variable = TMB_nonsynonymous<br />
+</li>
+<li>create vectors of variables.<br />
+</li>
+<li>construct linear model.<br />
+</li>
+<li>conf()</li>
+</ol>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVSbWRoTGxSdFlpNWtaaUE4TFNCa1lYUmhMbVp5WVcxbEtHWm5ZVDBnY0VSaGRHRWtSbkpoWTNScGIyNWZSMlZ1YjIxbFgwRnNkR1Z5WldRc0lGUk5RajBnY0VSaGRHRWtWRTFDWDI1dmJuTjVibTl1ZVcxdmRYTXBYRzVHWjJGVWJXSXViRzBnUEMwZ2JHMG9WRTFDZm1abllTd2dSbWRoTGxSdFlpNWtaaWxjYm5OMWJXMWhjbmtvUm1kaFZHMWlMbXh0S1Z4dVlHQmdJbjA9IC0tPlxuXG5gYGByXG5GZ2EuVG1iLmRmIDwtIGRhdGEuZnJhbWUoZmdhPSBwRGF0YSRGcmFjdGlvbl9HZW5vbWVfQWx0ZXJlZCwgVE1CPSBwRGF0YSRUTUJfbm9uc3lub255bW91cylcbkZnYVRtYi5sbSA8LSBsbShUTUJ+ZmdhLCBGZ2EuVG1iLmRmKVxuc3VtbWFyeShGZ2FUbWIubG0pXG5gYGBcblxuPCEtLSBybmItc291cmNlLWVuZCAtLT5cbiJ9 -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuRmdhLlRtYi5kZiA8LSBkYXRhLmZyYW1lKGZnYT0gcERhdGEkRnJhY3Rpb25fR2Vub21lX0FsdGVyZWQsIFRNQj0gcERhdGEkVE1CX25vbnN5bm9ueW1vdXMpXG5GZ2FUbWIubG0gPC0gbG0oVE1CfmZnYSwgRmdhLlRtYi5kZilcbnN1bW1hcnkoRmdhVG1iLmxtKVxuYGBgIn0= -->
+<pre class="r"><code>Fga.Tmb.df &lt;- data.frame(fga= pData$Fraction_Genome_Altered, TMB= pData$TMB_nonsynonymous)
+FgaTmb.lm &lt;- lm(TMB~fga, Fga.Tmb.df)
+summary(FgaTmb.lm)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5DYWxsOlxubG0oZm9ybXVsYSA9IFRNQiB+IGZnYSwgZGF0YSA9IEZnYS5UbWIuZGYpXG5cblJlc2lkdWFsczpcbiAgICBNaW4gICAgICAxUSAgTWVkaWFuICAgICAgM1EgICAgIE1heCBcbi0xLjc0NzAgLTAuOTM5MyAtMC40ODI1ICAwLjI1MTkgIDYuNDA5NyBcblxuQ29lZmZpY2llbnRzOlxuICAgICAgICAgICAgRXN0aW1hdGUgU3RkLiBFcnJvciB0IHZhbHVlIFByKD58dHwpICAgIFxuKEludGVyY2VwdCkgICAxLjIzNjMgICAgIDAuMjY2NSAgIDQuNjM4IDEuMDllLTA1ICoqKlxuZmdhICAgICAgICAgICAxLjgzNzggICAgIDAuNzQ1MiAgIDIuNDY2ICAgMC4wMTU0ICogIFxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG5cblJlc2lkdWFsIHN0YW5kYXJkIGVycm9yOiAxLjUyNSBvbiA5OCBkZWdyZWVzIG9mIGZyZWVkb21cbiAgKDMgb2JzZXJ2YXRpb25zIGRlbGV0ZWQgZHVlIHRvIG1pc3NpbmduZXNzKVxuTXVsdGlwbGUgUi1zcXVhcmVkOiAgMC4wNTg0NCxcdEFkanVzdGVkIFItc3F1YXJlZDogIDAuMDQ4ODMgXG5GLXN0YXRpc3RpYzogNi4wODIgb24gMSBhbmQgOTggREYsICBwLXZhbHVlOiAwLjAxNTM5XG4ifQ== -->
+<pre><code>
+Call:
+lm(formula = TMB ~ fga, data = Fga.Tmb.df)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-1.7470 -0.9393 -0.4825  0.2519  6.4097 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)   1.2363     0.2665   4.638 1.09e-05 ***
+fga           1.8378     0.7452   2.466   0.0154 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1.525 on 98 degrees of freedom
+  (3 observations deleted due to missingness)
+Multiple R-squared:  0.05844,   Adjusted R-squared:  0.04883 
+F-statistic: 6.082 on 1 and 98 DF,  p-value: 0.01539</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVZMmt1T1RVZ1BDMGdZMjl1Wm1sdWRDaEdaMkZVYldJdWJHMHBPeUJqYVM0NU5TQmNibUJnWUNKOSAtLT5cblxuYGBgclxuY2kuOTUgPC0gY29uZmludChGZ2FUbWIubG0pOyBjaS45NSBcbmBgYFxuXG48IS0tIHJuYi1zb3VyY2UtZW5kIC0tPlxuIn0= -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY2kuOTUgPC0gY29uZmludChGZ2FUbWIubG0pOyBjaS45NSBcbmBgYCJ9 -->
+<pre class="r"><code>ci.95 &lt;- confint(FgaTmb.lm); ci.95 </code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgICAgIDIuNSAlICAgOTcuNSAlXG4oSW50ZXJjZXB0KSAwLjcwNzMyODUgMS43NjUxNzhcbmZnYSAgICAgICAgIDAuMzU4OTc2NCAzLjMxNjU0N1xuIn0= -->
+<pre><code>                2.5 %   97.5 %
+(Intercept) 0.7073285 1.765178
+fga         0.3589764 3.316547</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p><strong>DISCUSS</strong><br />
+Explain the coefficients, their 95% CI, and the associated p-value for
+fraction genome altered. Additionally, explain the R-squared value and
+why it’s important for a regression model.</p>
+<blockquote>
+<ol start="5" style="list-style-type: decimal">
+<li>35 points Identify the genes most positively correlated with ERBB2
+in normal and cancer samples. Write code to calculate the pearson
+correlation between ERBB2 and all genes in the mRNA expression table for
+normal and tumor samples separately. Save all correlation coefficients
+and p-values for each gene and perform multiple hypothesis testing
+correction for the p-values. Report the top 10 correlated genes in both
+the normal and tumor groups, including their correlation coefficients
+and p-adjust values.</li>
+</ol>
+</blockquote>
+<ol style="list-style-type: decimal">
+<li>partition data, normal/tumor w all mrna expression data.<br />
+</li>
+<li></li>
+</ol>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG48IS0tIHJuYi1zb3VyY2UtYmVnaW4gZXlKa1lYUmhJam9pWUdCZ2NseHVkSFZ0YjNJdWJYSnVZU0E4TFNCdGNtNWhSR0YwWVZzc2NFUmhkR0VrVTJGdGNHeGxYMGxFWDFSMWJXOXlYVnh1Ym05eWJXRnNMbTF5Ym1FZ1BDMGdiWEp1WVVSaGRHRmJMQ0J3UkdGMFlTUlRZVzF3YkdWZlNVUmZUbTl5YldGc1hWeHVZR0JnSW4wPSAtLT5cblxuYGBgclxudHVtb3IubXJuYSA8LSBtcm5hRGF0YVsscERhdGEkU2FtcGxlX0lEX1R1bW9yXVxubm9ybWFsLm1ybmEgPC0gbXJuYURhdGFbLCBwRGF0YSRTYW1wbGVfSURfTm9ybWFsXVxuYGBgXG5cbjwhLS0gcm5iLXNvdXJjZS1lbmQgLS0+XG4ifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudHVtb3IubXJuYSA8LSBtcm5hRGF0YVsscERhdGEkU2FtcGxlX0lEX1R1bW9yXVxubm9ybWFsLm1ybmEgPC0gbXJuYURhdGFbLCBwRGF0YSRTYW1wbGVfSURfTm9ybWFsXVxuYGBgIn0= -->
+<pre class="r"><code>tumor.mrna &lt;- mrnaData[,pData$Sample_ID_Tumor]
+normal.mrna &lt;- mrnaData[, pData$Sample_ID_Normal]</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiBXZWVrIDUgSG9tZXdvcmsgCmF1dGhvcjogIkF1dGhvcjogTGF1cmEgV29vdGVuIgpkYXRlOiAiTGFzdCB1cGRhdGU6IGByIGZvcm1hdChTeXMudGltZSgpLCAnJWQgJUIsICVZJylgIiAKb3V0cHV0OiAKICBodG1sX25vdGVib29rOgogICAgY29kZV9mb2xkaW5nOiAKICAgIG51bWJlcl9zZWN0aW9uczogdHJ1ZQotLS0KbG9hZCBkYXRhCnBEYXRhIG9yZ2FuaXplZCBhcyBbcGF0aWVudHMsIHZhcmlhYmxlc10gd2hlcmUgdHVtb3IgYW5kIG5vcm1hbCBzYW1wbGUgaWQncyBhcmUgY29sdW1ucyAyLDMKbXJuYURhdGEgb3JnYW5pemVkIGFzIFtnZW5lcywgc2FtcGxlc10gd2hlcmUgbXJuYURhdGFbLDFdIGlzIGdlbmUgbmFtZSwgdGhlbiBbLDI6MTA0XSB0dW1vciBzYW1wbGVzLCBhbmQgWywxMDU6MjA3XSBub3JtYWwgc2FtcGxlcy4gIApgYGB7cn0KbXJuYURhdGEgPC0gcmVhZC50YWJsZSgiVENHQV9CUkNBX21STkFfZXhwcmVzc2lvbi5jc3YiLGhlYWRlcj0gVCwgc2VwID0gIiwiKQpwRGF0YSA8LSByZWFkLnRhYmxlKCJUQ0dBX0JSQ0FfY2xpbmljYWxfZGF0YS5jc3YiLCBoZWFkZXI9VCwgc2VwPSIsIikKCmBgYAoKCj4gMS4gMTAgcG9pbnRzIEludmVzdGlnYXRlIHdoZXRoZXIgdGhlIEVSQkIyIChIRVIyKSBtUk5BIGV4cHJlc3Npb24gaXMgc2lnbmlmaWNhbnRseSBkaWZmZXJlbnQgYmV0d2VlbiBub3JtYWwgYW5kIHR1bW9yIHRpc3N1ZXMuIFBlcmZvcm0gYm90aCBhbiB1bnBhaXJlZCB0LXRlc3QgYW5kIGEgcGFpcmVkIHQtdGVzdC4gQ2xlYXJseSBleHBsYWluIHRoZSByZXN1bHRzIGZyb20gZWFjaCB0ZXN0IGFuZCBkaXNjdXNzIHdoaWNoIHRlc3QgaXMgbW9yZSBhcHByb3ByaWF0ZSBmb3IgYW5zd2VyaW5nIHRoaXMgcXVlc3Rpb24uIEVuc3VyZSB0aGF0IHlvdSBzdGF0ZSB0aGUgbnVsbCBoeXBvdGhlc2lzIGNsZWFybHkgYW5kIGluZGljYXRlIHdoZXRoZXIgeW91IGFjY2VwdCBvciByZWplY3QgaXQgYmFzZWQgb24gdGhlIHJlc3VsdHMgb2J0YWluZWQuCgoxLiBjcmVhdGUgZGYgZm9yIGVhY2ggb3V0Y29tZSBbc2FtcGxlLCBFUkJCMl0uICAKMi4gSDAgPSBubyBzaWduaWZpY2FudCBkaWZmZXJlbmNlIEVSQkIyIGV4cHJlc3Npb24gYi93IHR1bW9yIGFuZCBub3JtYWwgc2FtcGxlcy4gIAozLiBpcyBkYXRhIG5vcm1hbGl6ZWQKCmBgYHtyfQojcmVtb3ZlIGFsbCBidXQgbXJuYURhdGEsIHBEYXRhCnJtKGxpc3Q9c2V0ZGlmZihscygpLCBjKCJtcm5hRGF0YSIsICJwRGF0YSIpKSkKYGBgCgpgYGB7cn0KIyBjcmVhdGUgZGYgZm9yIEVSQkIyIHdpdGggZWFjaCBvdXRjb21lCnR1bW9yLmVyYmIyIDwtIG1ybmFEYXRhW21ybmFEYXRhJFg9PSJFUkJCMiIsIHBEYXRhJFNhbXBsZV9JRF9UdW1vcl07IHJvd25hbWVzKHR1bW9yLmVyYmIyKSA8LSAiRVJCQjIiCnR1bW9yLmVyYmIyIDwtIHQodHVtb3IuZXJiYjIpCm5vcm1hbC5lcmJiMiA8LSBtcm5hRGF0YVttcm5hRGF0YSRYPT0iRVJCQjIiLCBwRGF0YSRTYW1wbGVfSURfTm9ybWFsXTsgcm93bmFtZXMobm9ybWFsLmVyYmIyKSA8LSAiRVJCQjIiCm5vcm1hbC5lcmJiMiA8LSB0KG5vcm1hbC5lcmJiMikKCiNjaGVjayBmb3Igbm9ybWFsaXR5CnNoYXBpcm8udGVzdCh0dW1vci5lcmJiMikKc2hhcGlyby50ZXN0KG5vcm1hbC5lcmJiMikKYGBgCnAtdmFsdWUgZm9yIGVhY2ggaXMgPDAuMDUsIGRhdGEgaXMgbm90IG5vcm1hbCAtPiBwZXJmb3JtIHQtdGVzdCBvbiByZXBlYXRlZCBzYW1wbGVzIG9mIG1lYW5zLiBuID4gMzAuIAo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiBXZWVrIDUgSG9tZXdvcmsgCmF1dGhvcjogIkF1dGhvcjogTGF1cmEgV29vdGVuIgpkYXRlOiAiTGFzdCB1cGRhdGU6IGByIGZvcm1hdChTeXMudGltZSgpLCAnJWQgJUIsICVZJylgIiAKb3V0cHV0OiAKICBodG1sX25vdGVib29rOgogICAgY29kZV9mb2xkaW5nOiAKICAgIG51bWJlcl9zZWN0aW9uczogdHJ1ZQotLS0KbG9hZCBkYXRhCnBEYXRhIG9yZ2FuaXplZCBhcyBbcGF0aWVudHMsIHZhcmlhYmxlc10gd2hlcmUgdHVtb3IgYW5kIG5vcm1hbCBzYW1wbGUgaWQncyBhcmUgY29sdW1ucyAyLDMKbXJuYURhdGEgb3JnYW5pemVkIGFzIFtnZW5lcywgc2FtcGxlc10gd2hlcmUgbXJuYURhdGFbLDFdIGlzIGdlbmUgbmFtZSwgdGhlbiBbLDI6MTA0XSB0dW1vciBzYW1wbGVzLCBhbmQgWywxMDU6MjA3XSBub3JtYWwgc2FtcGxlcy4gIApgYGB7cn0KbXJuYURhdGEgPC0gcmVhZC50YWJsZSgiVENHQV9CUkNBX21STkFfZXhwcmVzc2lvbi5jc3YiLGhlYWRlcj0gVCwgc2VwID0gIiwiKQpwRGF0YSA8LSByZWFkLnRhYmxlKCJUQ0dBX0JSQ0FfY2xpbmljYWxfZGF0YS5jc3YiLCBoZWFkZXI9VCwgc2VwPSIsIikKcHJvdERhdGEgPC0gcmVhZC50YWJsZSgiVENHQV9CUkNBX1JQUEFfcHJvdGVpbl9leHByZXNzaW9uLmNzdiIsIGhlYWRlciA9IFQsIHNlcCA9ICIsIikKYGBgCgoKPiAxLiAxMCBwb2ludHMgSW52ZXN0aWdhdGUgd2hldGhlciB0aGUgRVJCQjIgKEhFUjIpIG1STkEgZXhwcmVzc2lvbiBpcyBzaWduaWZpY2FudGx5IGRpZmZlcmVudCBiZXR3ZWVuIG5vcm1hbCBhbmQgdHVtb3IgdGlzc3Vlcy4gUGVyZm9ybSBib3RoIGFuIHVucGFpcmVkIHQtdGVzdCBhbmQgYSBwYWlyZWQgdC10ZXN0LiBDbGVhcmx5IGV4cGxhaW4gdGhlIHJlc3VsdHMgZnJvbSBlYWNoIHRlc3QgYW5kIGRpc2N1c3Mgd2hpY2ggdGVzdCBpcyBtb3JlIGFwcHJvcHJpYXRlIGZvciBhbnN3ZXJpbmcgdGhpcyBxdWVzdGlvbi4gRW5zdXJlIHRoYXQgeW91IHN0YXRlIHRoZSBudWxsIGh5cG90aGVzaXMgY2xlYXJseSBhbmQgaW5kaWNhdGUgd2hldGhlciB5b3UgYWNjZXB0IG9yIHJlamVjdCBpdCBiYXNlZCBvbiB0aGUgcmVzdWx0cyBvYnRhaW5lZC4KCjEuIENyZWF0ZSBkZiBmb3IgZWFjaCBvdXRjb21lIFtzYW1wbGUsIEVSQkIyXS4gIAoyLiBIMCA9IG5vIHNpZ25pZmljYW50IGRpZmZlcmVuY2UgRVJCQjIgZXhwcmVzc2lvbiBiL3cgdHVtb3IgYW5kIG5vcm1hbCBzYW1wbGVzLiAgCjMuIElzIGRhdGEgbm9ybWFsaXplZCwgbm8gLT4gcHVsbCBzYW1wbGVzIGZvciBlYWNoIG91dGNvbWUuICAKNC4gUGVyZm9ybSB0LXRlc3Qgb24gc2FtcGxlIGRhdGEuCgpgYGB7ciBpbmNsdWRlPUZBTFNFfQojcmVtb3ZlIGFsbCBidXQgbXJuYURhdGEsIHBEYXRhCnJtKGxpc3Q9c2V0ZGlmZihscygpLCBjKCJtcm5hRGF0YSIsICJwRGF0YSIsICJwcm90RGF0YSIpKSkKYGBgCgpgYGB7cn0KIyBQYXJ0aXRpb24gZGF0YSBmb3IgRVJCQjIgd2l0aCBlYWNoIG91dGNvbWUKdHVtb3IuZXJiYjIgPC0gbXJuYURhdGFbbXJuYURhdGEkWD09IkVSQkIyIiwgcERhdGEkU2FtcGxlX0lEX1R1bW9yXTsgcm93bmFtZXModHVtb3IuZXJiYjIpIDwtICJFUkJCMiIKdHVtb3IuZXJiYjIgPC0gdCh0dW1vci5lcmJiMikKbm9ybWFsLmVyYmIyIDwtIG1ybmFEYXRhW21ybmFEYXRhJFg9PSJFUkJCMiIsIHBEYXRhJFNhbXBsZV9JRF9Ob3JtYWxdOyByb3duYW1lcyhub3JtYWwuZXJiYjIpIDwtICJFUkJCMiIKbm9ybWFsLmVyYmIyIDwtIHQobm9ybWFsLmVyYmIyKQoKI2NoZWNrIGZvciBub3JtYWxpdHkKc2hhcGlyby50ZXN0KHR1bW9yLmVyYmIyKQpzaGFwaXJvLnRlc3Qobm9ybWFsLmVyYmIyKQpgYGAKcC12YWx1ZSBmb3IgZWFjaCBpcyA8MC4wNSwgZGF0YSBpcyBub3Qgbm9ybWFsIC0+IHBlcmZvcm0gdC10ZXN0cyBvbiBtZWFucyBvZiByZXBlYXRlZCBzYW1wbGVzLiAgCgpgYGB7cn0KY3JlYXRlX3NhbXBsZV9tZWFucyA8LSBmdW5jdGlvbihtYXRyaXhfY29sLCByZXBsaWNhdGVzLCBzbXBsLnNpemUpewogIHNtcGwubWVhbnMgPC0gbnVtZXJpYyhyZXBsaWNhdGVzKQogIGZvciAoaSBpbiAxOnJlcGxpY2F0ZXMpewogICAgdG1wLnNtcGwgPC0gc2FtcGxlKG1hdHJpeF9jb2xbIWlzLm5hKG1hdHJpeF9jb2wpXSwgc21wbC5zaXplLCByZXBsYWNlID0gVCkgI3NldCB0byByZXBsYWNlIHNvIHRoYXQgZWFjaCBzYW1wbGUgaXMgaW5kZXBlbmRlbnQKICAgIHRtcC5tdSA8LSBtZWFuKHRtcC5zbXBsKQogICAgc21wbC5tZWFuc1tpXSA8LSB0bXAubXUKICB9CiAgcmV0dXJuKHNtcGwubWVhbnMpCn0KCmBgYAoKYGBge3J9CiNDYWxsIGZ1bmN0aW9uIGFuZCBwZXJmcm9tIHQtdGVzdHMuCnQuMWttdSA8LSBjcmVhdGVfc2FtcGxlX21lYW5zKHR1bW9yLmVyYmIyWzFdLCAxMDAwLCAzMCkKbi4xa211IDwtIGNyZWF0ZV9zYW1wbGVfbWVhbnMobm9ybWFsLmVyYmIyWzFdLCAxMDAwLCAzMCkKCnQudGVzdCh0LjFrbXUsIG4uMWttdSwgcGFpcmVkPSBUKQp0LnRlc3QodC4xa211LCBuLjFrbXUpCgpgYGAKKipESVNDVVNTKiogIAotIGRvbmUsIGluIGRvY3VtZW50LiAgCgo+Mi4gMjAgcG9pbnRzIEFuYWx5emUgdGhlIGNvcnJlbGF0aW9uIGJldHdlZW4gRVJCQjIgKEhFUjIpIG1STkEgZXhwcmVzc2lvbiBhbmQgUlBQQSBwcm90ZWluIGxldmVscyBpbiBIRVIyLUlIQyBuZWdhdGl2ZSBwYXRpZW50cy4gQ2FsY3VsYXRlIGJvdGggdGhlIFBlYXJzb24gYW5kIFNwZWFybWFuIGNvcnJlbGF0aW9uIGNvZWZmaWNpZW50cywgYWxvbmcgd2l0aCB0aGVpciByZXNwZWN0aXZlIHAtdmFsdWVzLCBmb3IgRVJCQjIgbVJOQSBhbmQgUlBQQSBwcm90ZWluIGxldmVscy4gQ2xlYXJseSBleHBsYWluIHRoZSByZXN1bHRzIGZyb20gZWFjaCBjb3JyZWxhdGlvbiBtZXRob2QgYW5kIGRpc2N1c3Mgd2hpY2ggbWV0aG9kIGlzIG1vcmUgYXBwcm9wcmlhdGUgZm9yIHRoaXMgYW5hbHlzaXMuIEVuc3VyZSB5b3Ugc3RhdGUgdGhlIG51bGwgaHlwb3RoZXNpcyBjbGVhcmx5IGFuZCBpbmRpY2F0ZSB3aGV0aGVyIHlvdSBhY2NlcHQgb3IgcmVqZWN0IGl0IGJhc2VkIG9uIHRoZSByZXN1bHRzIG9idGFpbmVkLgoKMS4gSSBiZWxpZXZlIHRoaXMgcXVlc3RpbmcgaXMgYXNraW5nIGNvcnJlbGF0aW9uIGJldHdlZW4gRVJCQjIgbVJOQSBhbmQgRVJCQjIgUlBQQSBwcm90ZWluIGxldmVscyAobm90IEVSQkIyIG1STkEgd2l0aCBhbGwgUFJSUEEgcHJvdCBsZXZlbHMpLiAgIAoyLiBzdWJzZXQgZGF0YSAtIEhFUi1JSEMgbmVnYXRpdmUgcGF0aWVudHMsIFZhcmlhYmxlcz0gWC1FUkJCMm1STkEsIFktRVJCQjJwcm90LCAocHJvdGVpbiBkYXRhIG9ubHkgbG9va3MgYXQgdHVtb3Igc2FtcGxlcykuICAKMy4gSDAgPSBUaGVyZSBpcyBubyBjb3JyZWxhdGlvbiBiZXR3ZWVuIEVSQkIyIG1STkEgZXhwcmVzc2lvbiBhbmQgUFJSUEEgbGV2ZWxzIGluIEhFUjItSUhDIG5lZ2F0aXZlIHBhdGllbnRzLgoKYGBge3IgZXZhbD1GQUxTRSwgaW5jbHVkZT1GQUxTRX0KI2xpc3Qgb2Ygc2FtcGxlcyB3aGVyZSBoZXItaWNoID09IG5lZ2F0aXZlCm5lZ2hlci5zbXBscyA8LSBwRGF0YVtwRGF0YSRJSENIRVIyPT0iTmVnYXRpdmUiICYgIWlzLm5hKHBEYXRhJElIQ0hFUjIpLCJTYW1wbGVfSURfVHVtb3IiXQoKI2RvbnQgbmVlZCB0byBkbyBhbGwgdGhpcyB3b3JrISEgU2VlIGJlbG93IC0gd2F5IGVhc2llci4KbXJuYV9uZWdoZXIgPC0gbXJuYURhdGFbbXJuYURhdGEkWCA9PSAiRVJCQjIiLCBjb2xuYW1lcyhtcm5hRGF0YSkgJWluJSBuZWdoZXIuc21wbHNdIApwcm90X25lZ2hlciA8LSBwcm90RGF0YVtwcm90RGF0YSRYID09ICJFUkJCMiIsIGNvbG5hbWVzKHByb3REYXRhKSAlaW4lIG5lZ2hlci5zbXBsc10Kcm93bmFtZXMobXJuYV9uZWdoZXIpIDwtICJtcm5hX2VyYmIyIjtyb3duYW1lcyhwcm90X25lZ2hlcikgPC0gInByb3RfZXJiYjIiCiNzYW1wbGVzIG5vdCBhbGlnbmVkIGJldHdlZW4gZGZzCm1ybmFfbmVnaGVyIDwtIG1ybmFfbmVnaGVyWyxuZWdoZXIuc21wbHNdCnByb3RfbmVnaGVyIDwtIHByb3RfbmVnaGVyWyxuZWdoZXIuc21wbHNdCgojTWVyZ2UgdHVtb3IgZGF0YQpuZWdoZXJfZXJiYjJfZGYgPC0gcmJpbmQobXJuYV9uZWdoZXIsIHByb3RfbmVnaGVyKQoKYGBgCgpgYGB7cn0KI2xpc3Qgb2Ygc2FtcGxlcyB3aGVyZSBoZXItaWNoID09IG5lZ2F0aXZlCm5lZ2hlci5zbXBscyA8LSBwRGF0YVtwRGF0YSRJSENIRVIyPT0iTmVnYXRpdmUiICYgIWlzLm5hKHBEYXRhJElIQ0hFUjIpLCJTYW1wbGVfSURfVHVtb3IiXQojcHVsbCBmcm9tIG1ybmEgJiBwcm90IGRmJ3MKbXJuYV9uZWdoZXIgPC0gbXJuYURhdGFbbXJuYURhdGEkWCA9PSAiRVJCQjIiLCBuZWdoZXIuc21wbHNdCnByb3RfbmVnaGVyIDwtIHByb3REYXRhW3Byb3REYXRhJFggPT0gIkVSQkIyIiwgbmVnaGVyLnNtcGxzXQpyb3duYW1lcyhtcm5hX25lZ2hlcikgPC0gIm1ybmFfZXJiYjIiO3Jvd25hbWVzKHByb3RfbmVnaGVyKSA8LSAicHJvdF9lcmJiMiIKI21lcmdlIApuZWdoZXJfZXJiYjJfZGYgPC0gcmJpbmQobXJuYV9uZWdoZXIsIHByb3RfbmVnaGVyKQoKCmVyYmIyX3BlYXJzb24gPC0gY29yLnRlc3QoYXMubnVtZXJpYyhuZWdoZXJfZXJiYjJfZGZbMSxdKSwgYXMubnVtZXJpYyhuZWdoZXJfZXJiYjJfZGZbMixdKSwgbWV0aG9kID0gInBlYXJzb24iKQojVGhpcyBkb2Vzbid0IHdvcmsgLSBmaXgKcHJpbnQoIlAtdmFsdWUgZm9yIFBlYXJzb24gY29ycmVsYXRpb246IixlcmJiMl9wZWFyc29uJHAudmFsdWUpCgplcmJiMl9zcGVhcm1hbiA8LSBjb3IudGVzdChhcy5udW1lcmljKG5lZ2hlcl9lcmJiMl9kZlsxLF0pLCBhcy5udW1lcmljKG5lZ2hlcl9lcmJiMl9kZlsyLF0pLCBtZXRob2QgPSAic3BlYXJtYW4iKQpwcmludCgiUC12YWx1ZSBmb3IgU3BlYXJtYW4gY29ycmVsYXRpb246IixlcmJiMl9zcGVhcm1hbiRwLnZhbHVlKQpgYGAKKipESVNDVVNTKiogIAoKPjMuIDIwIHBvaW50cyBJbiBicmVhc3QgY2FuY2VyIGRpYWdub3N0aWNzLCBIRVIyIGFuZCBFUiBzdGF0dXNlcyBhcmUgY3JpdGljYWwgYmlvbWFya2VycyB0aGF0IGluZmx1ZW5jZSB0cmVhdG1lbnQgZGVjaXNpb25zLiBPbmNvbG9naXN0cyBhcmUgaW50ZXJlc3RlZCBpbiB0aGUgcmVsYXRpb25zaGlwIGJldHdlZW4gSEVSMi1JSEMgYW5kIEVSLUlIQyBzdGF0dXNlcyBpbiBicmVhc3QgY2FuY2VyIHBhdGllbnRzLiBQbGVhc2UgcGVyZm9ybSBhIHRlc3QgdG8gZGV0ZXJtaW5lIGlmIHRoZXJlIGlzIGEgc2lnbmlmaWNhbnQgYXNzb2NpYXRpb24gYmV0d2VlbiBIRVIyIGFuZCBFUiBzdGF0dXNlcyBpbiB0aGVzZSBwYXRpZW50cy4gRW5zdXJlIHlvdSBzdGF0ZSB0aGUgbnVsbCBoeXBvdGhlc2lzIGNsZWFybHkgYW5kIGluZGljYXRlIHdoZXRoZXIgeW91IGFjY2VwdCBvciByZWplY3QgdGhlIG51bGwgaHlwb3RoZXNpcyBiYXNlZCBvbiB0aGUgcmVzdWx0cyBvYnRhaW5lZC4gKE9ubHkgY29uc2lkZXIgSUhDIHBvc2l0aXZlIGFuZCBuZWdhdGl2ZSByZWNvcmRzLCBhbmQgcmVtb3ZlIE5BLCBlcXVpdm9jYWwsIGFuZCBpbmRldGVybWluYXRlIHJlY29yZHMpLgoKMS4gY3JlYXRlIHZlY3RvciBmb3IgSEVSMi1JSEMsIGFuZCBFUi1JSEMuICAKMi4gQ2F0ZWdvcmljYWwgdmFyaWFibGVzIC0gY29udGluZ2VuY3kgdGFibGVzLiAgCjMuIEgwID0gVGhlcmUgaXMgbm8gYXNzb2NpYXRpb24gYmV0d2VlbiBIRVIyIGFuZCBFUiBzdGF0dXNlcwpgYGB7cn0KaGVyMl9lciA8LSBkYXRhLmZyYW1lKAogIGhlcjI9IHBEYXRhWyFpcy5uYShwRGF0YSRJSENIRVIyKSAmIHBEYXRhJElIQ0hFUjIgJWluJSBjKCJQb3NpdGl2ZSIsICJOZWdhdGl2ZSIpICYKICAgICAgICAgICAgICAgICFpcy5uYShwRGF0YSRFUl9TdGF0dXNfQnlfSUhDKSAmIAogICAgICAgICAgICAgICAgcERhdGEkRVJfU3RhdHVzX0J5X0lIQyAlaW4lIGMoIlBvc2l0aXZlIiwgIk5lZ2F0aXZlIiksICJJSENIRVIyIl0sCiAgZXI9IHBEYXRhWyFpcy5uYShwRGF0YSRJSENIRVIyKSAmIHBEYXRhJElIQ0hFUjIgJWluJSBjKCJQb3NpdGl2ZSIsICJOZWdhdGl2ZSIpICYKICAgICAgICAgICAgICAgICFpcy5uYShwRGF0YSRFUl9TdGF0dXNfQnlfSUhDKSAmIAogICAgICAgICAgICAgICAgcERhdGEkRVJfU3RhdHVzX0J5X0lIQyAlaW4lIGMoIlBvc2l0aXZlIiwgIk5lZ2F0aXZlIiksICJFUl9TdGF0dXNfQnlfSUhDIl0KKQpgYGAKCgo+NC4gMTUgcG9pbnRzIFBsZWFzZSBjb25zdHJ1Y3QgYSByZWdyZXNzaW9uIG1vZGVsIHdpdGgg4oCcZnJhY3Rpb24gZ2Vub21lIGFsdGVyZWTigJ0gYXMgdGhlIGlucHV0IGFuZCDigJx0dW1vciBtdXRhdGlvbiBidXJkZW7igJ0gKFRNQl9ub25zeW5vbnltb3VzKSBhcyB0aGUgb3V0cHV0LiBDYWxjdWxhdGUgdGhlIDk1JSBjb25maWRlbmNlIGludGVydmFsIGZvciB0aGUgcmVncmVzc2lvbiBjb2VmZmljaWVudHMuIEV4cGxhaW4gdGhlIGNvZWZmaWNpZW50cywgdGhlaXIgOTUlIENJLCBhbmQgdGhlIGFzc29jaWF0ZWQgcC12YWx1ZSBmb3IgZnJhY3Rpb24gZ2Vub21lIGFsdGVyZWQuIEFkZGl0aW9uYWxseSwgZXhwbGFpbiB0aGUgUi1zcXVhcmVkIHZhbHVlIGFuZCB3aHkgaXTigJlzIGltcG9ydGFudCBmb3IgYSByZWdyZXNzaW9uIG1vZGVsLgoKMS4gSW5kZXBlbmRlbnQgY29udGludW91cyB2YXJpYWJsZSA9IGZyYWN0aW9uX2dlbm9tZV9hbHRlcmVkLCBkZXBlbmRlbnQgY29udGludW91cyB2YXJpYWJsZSA9IFRNQl9ub25zeW5vbnltb3VzICAKMi4gY3JlYXRlIHZlY3RvcnMgb2YgdmFyaWFibGVzLiAgCjMuIGNvbnN0cnVjdCBsaW5lYXIgbW9kZWwuICAKNC4gY29uZigpICAKCmBgYHtyfQpGZ2EuVG1iLmRmIDwtIGRhdGEuZnJhbWUoZmdhPSBwRGF0YSRGcmFjdGlvbl9HZW5vbWVfQWx0ZXJlZCwgVE1CPSBwRGF0YSRUTUJfbm9uc3lub255bW91cykKRmdhVG1iLmxtIDwtIGxtKFRNQn5mZ2EsIEZnYS5UbWIuZGYpCnN1bW1hcnkoRmdhVG1iLmxtKQpjaS45NSA8LSBjb25maW50KEZnYVRtYi5sbSk7IGNpLjk1IApgYGAKKipESVNDVVNTKiogIApFeHBsYWluIHRoZSBjb2VmZmljaWVudHMsIHRoZWlyIDk1JSBDSSwgYW5kIHRoZSBhc3NvY2lhdGVkIHAtdmFsdWUgZm9yIGZyYWN0aW9uIGdlbm9tZSBhbHRlcmVkLiBBZGRpdGlvbmFsbHksIGV4cGxhaW4gdGhlIFItc3F1YXJlZCB2YWx1ZSBhbmQgd2h5IGl04oCZcyBpbXBvcnRhbnQgZm9yIGEgcmVncmVzc2lvbiBtb2RlbC4gCgo+NS4gMzUgcG9pbnRzIElkZW50aWZ5IHRoZSBnZW5lcyBtb3N0IHBvc2l0aXZlbHkgY29ycmVsYXRlZCB3aXRoIEVSQkIyIGluIG5vcm1hbCBhbmQgY2FuY2VyIHNhbXBsZXMuIFdyaXRlIGNvZGUgdG8gY2FsY3VsYXRlIHRoZSBwZWFyc29uIGNvcnJlbGF0aW9uIGJldHdlZW4gRVJCQjIgYW5kIGFsbCBnZW5lcyBpbiB0aGUgbVJOQSBleHByZXNzaW9uIHRhYmxlIGZvciBub3JtYWwgYW5kIHR1bW9yIHNhbXBsZXMgc2VwYXJhdGVseS4gU2F2ZSBhbGwgY29ycmVsYXRpb24gY29lZmZpY2llbnRzIGFuZCBwLXZhbHVlcyBmb3IgZWFjaCBnZW5lIGFuZCBwZXJmb3JtIG11bHRpcGxlIGh5cG90aGVzaXMgdGVzdGluZyBjb3JyZWN0aW9uIGZvciB0aGUgcC12YWx1ZXMuIFJlcG9ydCB0aGUgdG9wIDEwIGNvcnJlbGF0ZWQgZ2VuZXMgaW4gYm90aCB0aGUgbm9ybWFsIGFuZCB0dW1vciBncm91cHMsIGluY2x1ZGluZyB0aGVpciBjb3JyZWxhdGlvbiBjb2VmZmljaWVudHMgYW5kIHAtYWRqdXN0IHZhbHVlcy4KCjEuIHBhcnRpdGlvbiBkYXRhLCBub3JtYWwvdHVtb3IgdyBhbGwgbXJuYSBleHByZXNzaW9uIGRhdGEuICAKMi4gCgpgYGB7cn0KdHVtb3IubXJuYSA8LSBtcm5hRGF0YVsscERhdGEkU2FtcGxlX0lEX1R1bW9yXQpub3JtYWwubXJuYSA8LSBtcm5hRGF0YVsscERhdGEkU2FtcGxlX0lEX05vcm1hbF0KCgpgYGAKCg==</div>
 
 
 

@@ -20,3 +20,8 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("ALL")
 library(ALL) 
 data(ALL)
+
+#if you have a list of column names and want to extract YOU DONT HAVE TO USE __ %in% ___:
+#where smpls is a list of sample names of interest, results in df that selects ERBB2 gene 
+#exprsn levels for samples in the vector.
+protData[protData$X == "ERBB2", smpls]

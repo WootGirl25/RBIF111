@@ -13,23 +13,24 @@ mrnaData organized as [genes, samples] where mrnaData[,1] is gene name, then [,2
 ```{r}
 mrnaData <- read.table("TCGA_BRCA_mRNA_expression.csv",header= T, sep = ",")
 pData <- read.table("TCGA_BRCA_clinical_data.csv", header=T, sep=",")
-
+protData <- read.table("TCGA_BRCA_RPPA_protein_expression.csv", header = T, sep = ",")
 ```
 
 
 > 1. 10 points Investigate whether the ERBB2 (HER2) mRNA expression is significantly different between normal and tumor tissues. Perform both an unpaired t-test and a paired t-test. Clearly explain the results from each test and discuss which test is more appropriate for answering this question. Ensure that you state the null hypothesis clearly and indicate whether you accept or reject it based on the results obtained.
 
-1. create df for each outcome [sample, ERBB2].  
+1. Create df for each outcome [sample, ERBB2].  
 2. H0 = no significant difference ERBB2 expression b/w tumor and normal samples.  
-3. is data normalized
+3. Is data normalized, no -> pull samples for each outcome.  
+4. Perform t-test on sample data.
 
-```{r}
+```{r include=FALSE}
 #remove all but mrnaData, pData
-rm(list=setdiff(ls(), c("mrnaData", "pData")))
+rm(list=setdiff(ls(), c("mrnaData", "pData", "protData")))
 ```
 
 ```{r}
-# create df for ERBB2 with each outcome
+# Partition data for ERBB2 with each outcome
 tumor.erbb2 <- mrnaData[mrnaData$X=="ERBB2", pData$Sample_ID_Tumor]; rownames(tumor.erbb2) <- "ERBB2"
 tumor.erbb2 <- t(tumor.erbb2)
 normal.erbb2 <- mrnaData[mrnaData$X=="ERBB2", pData$Sample_ID_Normal]; rownames(normal.erbb2) <- "ERBB2"
@@ -39,4 +40,118 @@ normal.erbb2 <- t(normal.erbb2)
 shapiro.test(tumor.erbb2)
 shapiro.test(normal.erbb2)
 ```
-p-value for each is <0.05, data is not normal -> perform t-test on repeated samples of means. n > 30. 
+p-value for each is <0.05, data is not normal -> perform t-tests on means of repeated samples.  
+
+```{r}
+create_sample_means <- function(matrix_col, replicates, smpl.size){
+  smpl.means <- numeric(replicates)
+  for (i in 1:replicates){
+    tmp.smpl <- sample(matrix_col[!is.na(matrix_col)], smpl.size, replace = T) #set to replace so that each sample is independent
+    tmp.mu <- mean(tmp.smpl)
+    smpl.means[i] <- tmp.mu
+  }
+  return(smpl.means)
+}
+
+```
+
+```{r}
+#Call function and perfrom t-tests.
+t.1kmu <- create_sample_means(tumor.erbb2[1], 1000, 30)
+n.1kmu <- create_sample_means(normal.erbb2[1], 1000, 30)
+
+t.test(t.1kmu, n.1kmu, paired= T)
+t.test(t.1kmu, n.1kmu)
+
+```
+**DISCUSS**  
+- done, in document.  
+
+>2. 20 points Analyze the correlation between ERBB2 (HER2) mRNA expression and RPPA protein levels in HER2-IHC negative patients. Calculate both the Pearson and Spearman correlation coefficients, along with their respective p-values, for ERBB2 mRNA and RPPA protein levels. Clearly explain the results from each correlation method and discuss which method is more appropriate for this analysis. Ensure you state the null hypothesis clearly and indicate whether you accept or reject it based on the results obtained.
+
+1. I believe this questing is asking correlation between ERBB2 mRNA and ERBB2 RPPA protein levels (not ERBB2 mRNA with all PRRPA prot levels).   
+2. subset data - HER-IHC negative patients, Variables= X-ERBB2mRNA, Y-ERBB2prot, (protein data only looks at tumor samples).  
+3. H0 = There is no correlation between ERBB2 mRNA expression and PRRPA levels in HER2-IHC negative patients.
+
+```{r eval=FALSE, include=FALSE}
+#list of samples where her-ich == negative
+negher.smpls <- pData[pData$IHCHER2=="Negative" & !is.na(pData$IHCHER2),"Sample_ID_Tumor"]
+
+#dont need to do all this work!! See below - way easier.
+mrna_negher <- mrnaData[mrnaData$X == "ERBB2", colnames(mrnaData) %in% negher.smpls] 
+prot_negher <- protData[protData$X == "ERBB2", colnames(protData) %in% negher.smpls]
+rownames(mrna_negher) <- "mrna_erbb2";rownames(prot_negher) <- "prot_erbb2"
+#samples not aligned between dfs
+mrna_negher <- mrna_negher[,negher.smpls]
+prot_negher <- prot_negher[,negher.smpls]
+
+#Merge tumor data
+negher_erbb2_df <- rbind(mrna_negher, prot_negher)
+
+```
+
+```{r}
+#list of samples where her-ich == negative
+negher.smpls <- pData[pData$IHCHER2=="Negative" & !is.na(pData$IHCHER2),"Sample_ID_Tumor"]
+#pull from mrna & prot df's
+mrna_negher <- mrnaData[mrnaData$X == "ERBB2", negher.smpls]
+prot_negher <- protData[protData$X == "ERBB2", negher.smpls]
+rownames(mrna_negher) <- "mrna_erbb2";rownames(prot_negher) <- "prot_erbb2"
+#merge 
+negher_erbb2_df <- rbind(mrna_negher, prot_negher)
+
+
+erbb2_pearson <- cor.test(as.numeric(negher_erbb2_df[1,]), as.numeric(negher_erbb2_df[2,]), method = "pearson")
+#This doesn't work - fix
+print("P-value for Pearson correlation:",erbb2_pearson$p.value)
+
+erbb2_spearman <- cor.test(as.numeric(negher_erbb2_df[1,]), as.numeric(negher_erbb2_df[2,]), method = "spearman")
+print("P-value for Spearman correlation:",erbb2_spearman$p.value)
+```
+**DISCUSS**  
+
+>3. 20 points In breast cancer diagnostics, HER2 and ER statuses are critical biomarkers that influence treatment decisions. Oncologists are interested in the relationship between HER2-IHC and ER-IHC statuses in breast cancer patients. Please perform a test to determine if there is a significant association between HER2 and ER statuses in these patients. Ensure you state the null hypothesis clearly and indicate whether you accept or reject the null hypothesis based on the results obtained. (Only consider IHC positive and negative records, and remove NA, equivocal, and indeterminate records).
+
+1. create vector for HER2-IHC, and ER-IHC.  
+2. Categorical variables - contingency tables.  
+3. H0 = There is no association between HER2 and ER statuses
+```{r}
+her2_er <- data.frame(
+  her2= pData[!is.na(pData$IHCHER2) & pData$IHCHER2 %in% c("Positive", "Negative") &
+                !is.na(pData$ER_Status_By_IHC) & 
+                pData$ER_Status_By_IHC %in% c("Positive", "Negative"), "IHCHER2"],
+  er= pData[!is.na(pData$IHCHER2) & pData$IHCHER2 %in% c("Positive", "Negative") &
+                !is.na(pData$ER_Status_By_IHC) & 
+                pData$ER_Status_By_IHC %in% c("Positive", "Negative"), "ER_Status_By_IHC"]
+)
+```
+
+
+>4. 15 points Please construct a regression model with “fraction genome altered” as the input and “tumor mutation burden” (TMB_nonsynonymous) as the output. Calculate the 95% confidence interval for the regression coefficients. Explain the coefficients, their 95% CI, and the associated p-value for fraction genome altered. Additionally, explain the R-squared value and why it’s important for a regression model.
+
+1. Independent continuous variable = fraction_genome_altered, dependent continuous variable = TMB_nonsynonymous  
+2. create vectors of variables.  
+3. construct linear model.  
+4. conf()  
+
+```{r}
+Fga.Tmb.df <- data.frame(fga= pData$Fraction_Genome_Altered, TMB= pData$TMB_nonsynonymous)
+FgaTmb.lm <- lm(TMB~fga, Fga.Tmb.df)
+summary(FgaTmb.lm)
+ci.95 <- confint(FgaTmb.lm); ci.95 
+```
+**DISCUSS**  
+Explain the coefficients, their 95% CI, and the associated p-value for fraction genome altered. Additionally, explain the R-squared value and why it’s important for a regression model. 
+
+>5. 35 points Identify the genes most positively correlated with ERBB2 in normal and cancer samples. Write code to calculate the pearson correlation between ERBB2 and all genes in the mRNA expression table for normal and tumor samples separately. Save all correlation coefficients and p-values for each gene and perform multiple hypothesis testing correction for the p-values. Report the top 10 correlated genes in both the normal and tumor groups, including their correlation coefficients and p-adjust values.
+
+1. partition data, normal/tumor w all mrna expression data.  
+2. 
+
+```{r}
+tumor.mrna <- mrnaData[,pData$Sample_ID_Tumor]
+normal.mrna <- mrnaData[,pData$Sample_ID_Normal]
+
+
+```
+
