@@ -123,9 +123,10 @@ print(paste("Shapiro-Wilk p-values for ERBB2 mRNA:", shap.mrna$p.value, "and ERB
 
 1. create vector for HER2-IHC, and ER-IHC.  
 2. Categorical variables - contingency tables.  
-3. H0 = There is no association between HER2 and ER statuses
-```{r}
-her2_er <- data.frame(
+3. H0 = There is no association between HER2 and ER statuses in breast cancer patients
+```{r warning=FALSE}
+#Pull data from pData, filter for Positive and Negative only.
+her2_er.df <- data.frame(
   her2= pData[!is.na(pData$IHCHER2) & pData$IHCHER2 %in% c("Positive", "Negative") &
                 !is.na(pData$ER_Status_By_IHC) & 
                 pData$ER_Status_By_IHC %in% c("Positive", "Negative"), "IHCHER2"],
@@ -134,10 +135,22 @@ her2_er <- data.frame(
                 pData$ER_Status_By_IHC %in% c("Positive", "Negative"), "ER_Status_By_IHC"]
 )
 
-dim(her2_er)
-her2_er[1:8,]
-```
+#preview
+her2_er[1:5,]
 
+#Create contigency table
+her2_er.ct <- table(her2_er.df);her2_er.ct
+
+##Pearson's chi square test want 5-10 obvserved and expected in each cell & contents should be uniform
+#observations are >5 /cell, lets see expected
+ch.f <- chisq.test(her2_er.ct, correct = F); ch.f$expected
+ch.f
+
+#expected values are not greater than 5 for each cell, and contents are not uniform - compare to fishers
+fisher.test(her2_er.ct,alternative = "two.sided")
+
+```
+**DISCUSS** - done
 
 >4. 15 points Please construct a regression model with “fraction genome altered” as the input and “tumor mutation burden” (TMB_nonsynonymous) as the output. Calculate the 95% confidence interval for the regression coefficients. Explain the coefficients, their 95% CI, and the associated p-value for fraction genome altered. Additionally, explain the R-squared value and why it’s important for a regression model.
 
@@ -147,10 +160,10 @@ her2_er[1:8,]
 4. conf()  
 
 ```{r}
-Fga.Tmb.df <- data.frame(fga= pData$Fraction_Genome_Altered, TMB= pData$TMB_nonsynonymous)
-FgaTmb.lm <- lm(TMB~fga, Fga.Tmb.df)
+Fga.Tmb.df <- data.frame(FGA= pData$Fraction_Genome_Altered, TMB= pData$TMB_nonsynonymous)
+FgaTmb.lm <- lm(TMB~FGA, Fga.Tmb.df)
 summary(FgaTmb.lm)
-ci.95 <- confint(FgaTmb.lm); ci.95 
+ci.95 <- confint(FgaTmb.lm, level = 0.95); ci.95 
 ```
 **DISCUSS**  
 Explain the coefficients, their 95% CI, and the associated p-value for fraction genome altered. Additionally, explain the R-squared value and why it’s important for a regression model. 
