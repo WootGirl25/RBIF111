@@ -170,13 +170,69 @@ Explain the coefficients, their 95% CI, and the associated p-value for fraction 
 
 >5. 35 points Identify the genes most positively correlated with ERBB2 in normal and cancer samples. Write code to calculate the pearson correlation between ERBB2 and all genes in the mRNA expression table for normal and tumor samples separately. Save all correlation coefficients and p-values for each gene and perform multiple hypothesis testing correction for the p-values. Report the top 10 correlated genes in both the normal and tumor groups, including their correlation coefficients and p-adjust values.
 
-1. partition data, normal/tumor w all mrna expression data.  
-2. 
+1. partition data, normal/tumor w all mrna expression data & extract ERBB2 levels for each outcome. 
+2. Remember all data is continuous.  
+3. for each partitioned dataset:    
+  - Compare ERBB2 row against every other row in df - use pearson correlation.  
+  - Save correlation coeff (r) and p-value to df/vector.  
+  
+
+```{r eval=FALSE, include=FALSE}
+##fuck dis shit
+
+# Partition data by outcome
+tumor.mrna <- mrnaData[,c("X", pData$Sample_ID_Tumor)]
+normal.mrna <- mrnaData[,c("X", pData$Sample_ID_Normal)]
+#assign ERBB2 levels
+tumor.erbb2 <- as.numeric(tumor.mrna[tumor.mrna$X=="ERBB2",-1])
+normal.erbb2 <- as.numeric(normal.mrna[normal.mrna$X=="ERBB2",-1])
+#remove ERBB2 from mrna dfs, otherwise will correlate with itself
+tumor.mrna <- tumor.mrna[tumor.mrna$X!="ERBB2",]
+normal.mrna <- normal.mrna[normal.mrna$X!="ERBB2",]
+
+
+#use apply to calculate pearson corr for each gene in the mrna dfs
+tumor.pearson <- apply(tumor.mrna[,-1], 1, function(gene) cor.test(as.numeric(gene), tumor.erbb2, method = "pearson"))
+```
+
+```{r eval=FALSE, include=FALSE}
+# Identify genes with no variability (i.e., all values are identical)
+zero_variance_genes <- apply(tumor.mrna[,-1], 1, function(gene) var(gene) == 0)
+zero_variance_indices <- which(apply(tumor.mrna[,-1], 1, function(gene) var(gene) == 0))
+# Count how many rows (genes) have zero variance
+sum(zero_variance_genes)
+zero_variance_indices
+```
 
 ```{r}
-tumor.mrna <- mrnaData[,pData$Sample_ID_Tumor]
-normal.mrna <- mrnaData[,pData$Sample_ID_Normal]
+#use genes as rownames
+rownames(mrnaData) <- mrnaData[,1]
+mrnaData <- mrnaData[,-1]
+```
+```{r warning=FALSE}
+#partition data by outcome - remove erbb2 as we will be comparing it to each row
+tumor.mrna <- mrnaData[rownames(mrnaData)!="ERBB2",pData$Sample_ID_Tumor]
+normal.mrna <- mrnaData[rownames(mrnaData)!="ERBB2",pData$Sample_ID_Normal]
+#assign ERBB2 levels
+tumor.erbb2 <- as.numeric(tumor.mrna["ERBB2",pData$Sample_ID_Tumor])
+normal.erbb2 <- as.numeric(normal.mrna["ERBB2", pData$Sample_ID_Normal])
 
+#zero_variance_genes <- apply(tumor.mrna, 1, function(gene) var(gene) == 0)
+#sum(zero_variance_genes)
 
+#use apply to calculate pearson corr for each gene in the mrna dfs
+tumor.pearson <- apply(tumor.mrna, 1, function(gene) cor.test(gene, tumor.erbb2, method = "pearson"))
+
+#get gene name, correlation, p-value for each
+tumor.results.df <- data.frame(
+  gene = names(tumor.pearson),
+  corr = sapply(tumor.pearson, function(x) x$estimate),
+  pvalue = sapply(tumor.pearson, function(x) x$p.value)
+)
+
+#Perform multiple hypothesis testing correction???
+
+#Sort and slect the top 10 most positively correlated genes
+#top_tumor <- tumor.results.df[order(-tumor_results$Correlation), ][1:10, ]
 ```
 
