@@ -1,5 +1,5 @@
 ---
-title: Week 5 Homework 
+title: Week 5 - Midterm Exam 
 author: "Author: Laura Wooten"
 date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
 output: 
@@ -7,9 +7,9 @@ output:
     code_folding: 
     number_sections: true
 ---
-load data
-pData organized as [patients, variables] where tumor and normal sample id's are columns 2,3
-mrnaData organized as [genes, samples] where mrnaData[,1] is gene name, then [,2:104] tumor samples, and [,105:207] normal samples.  
+1. load data  
+2. pData organized as [patients, variables] where tumor and normal sample id's are columns 2,3  
+3. mrnaData organized as [genes, samples] where mrnaData[,1] is gene name, then [,2:104] tumor samples, and [,105:207] normal samples.  
 ```{r}
 mrnaData <- read.table("TCGA_BRCA_mRNA_expression.csv",header= T, sep = ",")
 pData <- read.table("TCGA_BRCA_clinical_data.csv", header=T, sep=",")
@@ -65,7 +65,10 @@ t.test(t.1kmu, n.1kmu)
 
 ```
 **DISCUSS**  
-- done, in document.  
+The student-t test assumes normality in the data being analyzed, so once the data was partitioned by the gene of interest and the outcome variable, I performed a Shapiro-Wilks test to determine whether the data follows a normal distribution, and can see it has a p-value of < 2.2e-16 and equal to 1.746e-06 for tumor and normal tissues, respectively. With this test, the hypothesis is that the data is normally distributed, as the values are far less that 0.05, the assumption of normality is rejected which indicates the data is significantly different from a normal distribution. This could suggest the data follows a different distribution, is skewed or has outliers.  
+Due to this result I can't use the t-test on the raw data. Due to the central limit theorem however, I can use the t-test if I have enough independent identically distributed random variables, as the random variables converge to a normal distribution as n increases. At this point, the original paired structure is lost, as the focus is now on comparing independent sample means derived from tumor and normal tissues. Consequently, the appropriate test to use in this scenario is a two-sample t-test rather than a paired t-test. The null hypothesis for this test is that there is no difference in the underlying means of ERBB2 expression between the tumor and normal samples.
+The p-value from the two-sample t-test is <2.2e-16. This extremely low p-value means that if there were no true difference between the groups, the probability of observing the current (or a more extreme) difference would be nearly zero. Therefore, we reject the null hypothesis and conclude that there is a statistically significant difference in ERBB2 expression between the two outcomes. Additionally, the test provides a 95% confidence interval of approximately 391 to 580, which indicates that we can be 95% confident that the true mean difference in expression levels lies within this range. This confidence interval being far from zero, also reinforces the significance of the difference observed. Lastly, the sample estimate shows that, on average expression of tumor samples is 11143.5, and 10653.33 for normal samples, giving an average difference of 490 between the two. We can see that the paired t-test results are very similar, also with p-value of <2.2e-16 and mean difference of 490. Using a two-sample t-test on the original paired data would have been problematic since it ignores the dependency between paired observations. But as we transformed this data with the simulations of independent samples, the two-sample test is the best method. 
+
 
 >2. 20 points Analyze the correlation between ERBB2 (HER2) mRNA expression and RPPA protein levels in HER2-IHC negative patients. Calculate both the Pearson and Spearman correlation coefficients, along with their respective p-values, for ERBB2 mRNA and RPPA protein levels. Clearly explain the results from each correlation method and discuss which method is more appropriate for this analysis. Ensure you state the null hypothesis clearly and indicate whether you accept or reject it based on the results obtained.
 
@@ -117,7 +120,12 @@ shap.prot <- shapiro.test(as.numeric(negHER_erbb2_df[2,]))
 print(paste("Shapiro-Wilk p-values for ERBB2 mRNA:", shap.mrna$p.value, "and ERBB2 RPPA:", shap.prot$p.value))
 ```
 
-**DISCUSS**  - Done, see word document.
+**DISCUSS**  
+Both the coefficient estimates and the p-values are very similar from both tests. The Pearson coefficient estimate represents the strength and direction of a linear relationship between the two variables, while the Spearman coefficient estimate represents the strength and direction of a consistent, unidirectional relationship between the two variables, regardless of whether the relationship is linear. 
+We can see that the p-values for each are very similar at 0.0029 and 0.0032, both of which are less than 0.05. Therefore, we can reject the null hypothesis, which states there is no correlation between the two variables, and accept the alternate hypothesis that there is a significant relationship between the two variables. 
+While I would expect there to be a predictive relationship between mRNA levels of a gene and protein levels of the same gene, it doesn’t necessarily mean it would be completely linear. There are many factors that can interfere with mRNA being translated and then post-translational modifications resulting in an active protein. While both methods work well for continuous data, Pearson’s correlation assumes normality, whereas Spearman’s correlation makes no assumptions about the data and tests whether there is a consistent increase or decrease based on the other variable, even if it’s not particularly linear. 
+Even though the results were very similar between methods, to determine which test is preferred, I checked the normality of each variable and found that the Shapiro-Wilk p-value for the mRNA data was approximately 0.001, and the RPPA data p-value was 0.74. Now we’re in a situation where one set of data follows a normal distribution and the other does not. Since one set is not normal, I would still lean towards using the Spearman method, as the Pearson method assumes both sets of data are normal.
+
 
 >3. 20 points In breast cancer diagnostics, HER2 and ER statuses are critical biomarkers that influence treatment decisions. Oncologists are interested in the relationship between HER2-IHC and ER-IHC statuses in breast cancer patients. Please perform a test to determine if there is a significant association between HER2 and ER statuses in these patients. Ensure you state the null hypothesis clearly and indicate whether you accept or reject the null hypothesis based on the results obtained. (Only consider IHC positive and negative records, and remove NA, equivocal, and indeterminate records).
 
@@ -136,7 +144,7 @@ her2_er.df <- data.frame(
 )
 
 #preview
-her2_er[1:5,]
+her2_er.df[1:5,]
 
 #Create contigency table
 her2_er.ct <- table(her2_er.df);her2_er.ct
@@ -150,7 +158,10 @@ ch.f
 fisher.test(her2_er.ct,alternative = "two.sided")
 
 ```
-**DISCUSS** - done
+**DISCUSS**  
+After segregating the data and constructing a contingency table of results, I was ready to proceed with selecting a significance test for two categorical variables. Based on the lecture notes, to use Pearson’s chi-square test the counts should be relatively even across cells of the contingency table, and the count of observations should be at least 5-10 in each cell. According to another article I found, expected counts (computed based on the assumption that there is no association between groups – so P(HER2-IHC, ER-IHC) = P(HER2-IHC) * P(ER-IHC)) should also be at least 5 in a minimum of 80% of cells [1]. Even though the counts did not look particularly uniform, I decided to see what the expected table would look like. One cell (HER2-IHC positive, ER-IHC negative) had an expected value of 4.57, so 25% of the table was <5. Therefore, I continued on to use Fisher's exact two-sample test which looks for a correlation in either direction. 
+The p-value is greater than 0.05, which means we can accept the null hypothesis that states the IHC status (presence) of the HER2 protein and ER protein are not correlated in the sample of breast cancer patients. Looking at the confidence interval returned from Fisher's test we can see that the range includes 1, and that our estimated odds ratio is 0.85. The odds ratio represents a measure of association between our groups, where a ratio of 1 means they are independent of each other. Having the confidence interval span across 1 suggests that the true underlying odds ratio of the population could be 1 (not that it would change, the population ratio is fixed). This further suggests that there is no significant association between the variables. Even though our estimated odds ratio is slightly less than 1, since the p-value is >0.05 it is not a significant difference.  
+
 
 >4. 15 points Please construct a regression model with “fraction genome altered” as the input and “tumor mutation burden” (TMB_nonsynonymous) as the output. Calculate the 95% confidence interval for the regression coefficients. Explain the coefficients, their 95% CI, and the associated p-value for fraction genome altered. Additionally, explain the R-squared value and why it’s important for a regression model.
 
@@ -166,7 +177,15 @@ summary(FgaTmb.lm)
 ci.95 <- confint(FgaTmb.lm, level = 0.95); ci.95 
 ```
 **DISCUSS**  
-Explain the coefficients, their 95% CI, and the associated p-value for fraction genome altered. Additionally, explain the R-squared value and why it’s important for a regression model. 
+If our output is tumor mutation burden, it means that the regression model aims to calculate, as our input changes, what happens to our output. Therefore, tumor mutation burden (TMB) is the dependent variable in this analysis, and fraction genome altered (FGA) is the independent variable.  
+
+The regression coefficients section of the results are really important to interpreting our model. The intercept estimate represents the expected value of our output (dependent variable) when the independent variable is zero. In other words, it represents the value of the tumor mutation burden where there is no association with fraction genome altered. The standard error, t value, and Pr(>|t|) measure the average deviations of observed points from the calculated regression line, the absolute value of the coefficient divided by its standard error, and the probability of obtaining a t-value the same or more extreme than our result, respectively. The higher the t-value, the greater the indication that the intercept is significantly greater than zero, and the lower the p-value the stronger the evidence against the null hypothesis (for this row it states the intercept is zero). Because the p-value  1.09e-5 is less that our cutoff, we can conclude that the intercept estimate is not due to chance and that when there is no alteration in the genome, the tumor mutation burden has a baseline of 1.2363. 
+
+Looking at the “FGA” row of the coefficients section, the estimate is equal to 1.8378 with a p-value of 0.0154. Since we are now looking at the coefficient of the independent variable, the estimate relates to the slope or rate of change per one measurement of FGA. This means that for each one-unit increase in the fraction of the genome that is altered, the Tumor Mutation Burden is expected to increase by approximately 1.8378 units. 
+The p-value indicates that this relationship is statistically significant at the 5% significance level, meaning that there is strong evidence to suggest that FGA has a predictive relationship with TMB, which is our alternate hypothesis for this row. 
+The 95% confidence interval for the coefficient of FGA ranges from 0.3590 to 3.3165. This interval suggests that we can be 95% confident of our model in predicting the true effect of FGA on TMB lying within this range. Since the confidence interval does not include zero, it also supports our conclusion that there is a significant positive relationship between the fraction of the genome that is altered and tumor mutation burden. 
+Lastly the R-squared value represents the “explained” variance, or the proportion of the variance between the means of each variable. In this case R-squared is 0.05844, which means that only 5.84% of the variation seen is due to the relationship between the two variables. This is very small and indicates that there is a high level of variance in TMB that is unaccounted for. 
+
 
 >5. 35 points Identify the genes most positively correlated with ERBB2 in normal and cancer samples. Write code to calculate the pearson correlation between ERBB2 and all genes in the mRNA expression table for normal and tumor samples separately. Save all correlation coefficients and p-values for each gene and perform multiple hypothesis testing correction for the p-values. Report the top 10 correlated genes in both the normal and tumor groups, including their correlation coefficients and p-adjust values.
 
@@ -174,7 +193,7 @@ Explain the coefficients, their 95% CI, and the associated p-value for fraction 
 2. Remember all data is continuous.  
 3. for each partitioned dataset:    
   - Compare ERBB2 row against every other row in df - use pearson correlation.  
-  - Save correlation coeff (r) and p-value to df/vector.  
+  - Save correlation coeff and p-value to df/vector.  
   
 
 ```{r eval=FALSE, include=FALSE}
@@ -209,6 +228,7 @@ zero_variance_indices
 rownames(mrnaData) <- mrnaData[,1]
 mrnaData <- mrnaData[,-1]
 ```
+
 ```{r warning=FALSE}
 #partition data by outcome - remove erbb2 as we will be comparing it to each row
 tumor.mrna <- mrnaData[rownames(mrnaData)!="ERBB2",pData$Sample_ID_Tumor]
@@ -222,17 +242,75 @@ normal.erbb2 <- as.numeric(normal.mrna["ERBB2", pData$Sample_ID_Normal])
 
 #use apply to calculate pearson corr for each gene in the mrna dfs
 tumor.pearson <- apply(tumor.mrna, 1, function(gene) cor.test(gene, tumor.erbb2, method = "pearson"))
+normal.pearson <- apply(normal.mrna, 1, function(gene) cor.test(gene, normal.erbb2, method = "pearson"))
 
-#get gene name, correlation, p-value for each
+
+#get gene name, correlation, p-value for each outcome
 tumor.results.df <- data.frame(
   gene = names(tumor.pearson),
   corr = sapply(tumor.pearson, function(x) x$estimate),
   pvalue = sapply(tumor.pearson, function(x) x$p.value)
 )
-
-#Perform multiple hypothesis testing correction???
-
-#Sort and slect the top 10 most positively correlated genes
-#top_tumor <- tumor.results.df[order(-tumor_results$Correlation), ][1:10, ]
+normal.results.df <- data.frame(
+  gene = names(normal.pearson),
+  corr = sapply(normal.pearson, function(x) x$estimate),
+  pvalue = sapply(normal.pearson, function(x) x$p.value)
+)
 ```
 
+```{r}
+#Perform multiple hypothesis testing correction - use Benjamini-Hochberg, less stringent than Bonferroni.
+tumor.results.df$corrected_pvalue <- p.adjust(tumor.results.df$pvalue, method = "BH")
+normal.results.df$corrected_pvalue <- p.adjust(normal.results.df$pvalue, method = "BH")
+
+#Sort and slect the top 10 most positively correlated genes
+tumor.top10 <- subset(tumor.results.df[order(tumor.results.df$corr, decreasing = T ), ][1:10,], select =-pvalue); tumor.top10
+normal.top10 <- subset(normal.results.df[order(normal.results.df$corr, decreasing = T ), ][1:10,], select = -pvalue); normal.top10
+
+#first entry is ERBB21P?? are there other ERBB2 genes?
+other_ERBB <- grep("ERBB", rownames(tumor.mrna)); tumor.mrna[other_ERBB,1:3]
+
+```
+Confirm with linear model of ERBB2 vs ERBB2IP in tumor/normal tissues.
+```{r}
+
+
+oldpar <- par(mfrow = c(1, 2), cex.main = 0.7) # Set up a 1x2 plotting area
+
+# Scatter plot 
+plot(as.numeric(tumor.mrna["ERBB2", ]), as.numeric(tumor.mrna["ERBB2IP", ]),
+     xlab = "ERBB2 Expression",
+     ylab = "ERBB2IP Expression",
+     main = "ERBB2 vs ERBB2IP in tumor tissues",
+     pch = 19, col = "blue")
+abline(lm(as.numeric(tumor.mrna["ERBB2IP", ]) ~ as.numeric(tumor.mrna["ERBB2", ])), col = "red")
+
+plot(as.numeric(normal.mrna["ERBB2", ]), as.numeric(normal.mrna["ERBB2IP", ]),
+     xlab = "ERBB2 Expression",
+     ylab = "ERBB2IP Expression",
+     main = "ERBB2 vs ERBB2IP in normal tissues",
+     pch = 19, col = "blue")
+abline(lm(as.numeric(normal.mrna["ERBB2IP", ]) ~ as.numeric(normal.mrna["ERBB2", ])), col = "red")
+
+
+par(oldpar)
+
+```
+```{r}
+
+lm_model <- lm(as.numeric(tumor.mrna["ERBB2IP", ]) ~ as.numeric(tumor.mrna["ERBB2", ]))
+summary(lm_model)
+coef(lm_model)
+
+```
+**DISCUSS**  
+In week 3, we extensively discussed the Bonferroni and Benjamini-Hochberg methods for multiple hypothesis testing correction. The Bonferroni method is more conservative and can increase the likelihood of rejecting significant values, especially in large datasets such as gene expression studies. While we are only looking at the top 10 correlated genes, either approach would likely result in the same genes. However, I decided to use the Benjamini-Hochberg method to correct for multiple hypothesis testing because it is less stringent and controls the false discovery rate more effectively. 
+
+In both normal and tumor samples, ERBB2IP shows a perfect correlation (1.0000) with ERBB2, and its adjusted p-value is reported as zero. Initially, this struck me as an error because p-values are rarely exactly zero, as this would indicate there is no chance of observing a more extreme value. It is possible that the number of significant figures behind the decimal point is so extreme that it is rounded down to zero. To further investigate, I constructed a linear model for a visual representation and to confirm the R-squared value (R^2 = 1). The model appears to be a perfect fit, and R even issued a warning: "Warning in summary.lm(lm_model): essentially perfect fit: summary may be unreliable." This strong correlation makes sense given that ERBB2IP is known to bind to the unphosphorylated form of ERBB2 and regulate its function and localization [3]. 
+
+While all the correlations are positive (as ERBB2 increases, so does the gene of interest), we observe that the correlations between ERBB2 expression and other gene expressions in normal tissues are stronger with lower p-values (higher levels of significance) compared to those in tumor samples. Also, the second and third highest correlated genes in normal samples are not present at all in the tumor samples. This could indicate that the regulatory mechanisms involving ERBB2 differ between normal and tumor tissues, potentially due to alterations in signaling pathways or gene expression regulation in cancerous cells. 
+
+**REFRENCES**  
+[1] McHugh M. L. (2013). The chi-square test of independence. Biochemia medica, 23(2), 143–149. https://doi.org/10.11613/bm.2013.018   
+[2] Jafari, M., & Ansari-Pour, N. (2019). Why, When and How to Adjust Your P Values?. Cell journal, 20(4), 604–607. https://doi.org/10.22074/cellj.2019.5992   
+[3] National Center for Biotechnology Information. https://www.ncbi.nlm.nih.gov/gene/55914  
