@@ -1,0 +1,356 @@
+---
+title: Week 6 Homework
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: 
+  html_notebook:
+    code_folding: 
+    number_sections: true
+---
+
+```{r warning=FALSE}
+library(GEOquery)
+geodata <-  getGEO("GSE27272", GSEMatrix = TRUE)
+eset <- geodata[[1]]
+edata <- exprs(eset)
+pheno <- pData(eset)
+```
+```{r include=FALSE}
+#Save full data set
+save(edata,file = "cotinine_edata.rda")
+save(pheno, file = "cotinine_pheno.rda")
+```
+
+---
+Check normalization of array data - Plot average expression to check for normalized data - group samples by levels of cotinine concentration, look at spread of averaged values.
+
+Data Processing - "Bead summary data were imported into the R statistical environment (www.r-project.org) and normalized by the quantile method in the Lumi package. Only probes that reached detection P-value < 0.01 in all samples were used for further analyses. Differentially expressed genes were analysed in the Limma package. A linear model was fitted for each gene given a series of arrays using the lmFit function. Using the Benjamini and Hochberg method, P-values were corrected for multiple testing. The M, PL, and D groups were normalized separately."
+
+```{r}
+
+#check for normalization of data
+#"cc.mat" is a vector of maternal cotinine concentrations (independent variable)
+cc.mat <- as.numeric(gsub(".*: ","",pheno$characteristics_ch1.10))
+# And "edata" is a matrix where rows = genes, columns = samples (expression levels)
+
+# Define cotinine exposure groups
+quartiles <- quantile(cc.mat, probs = c(0.25, 0.50, 0.75)) # Compute quartiles
+exposure_group <- cut(cc.mat, 
+                      breaks = c(-Inf, quartiles[1], quartiles[3], Inf), 
+                      labels = c("Low", "Moderate", "High"))
+
+# Compute average gene expression per sample
+avg_expression <- colMeans(edata)
+
+# Create a dataframe
+df <- data.frame(Sample = colnames(edata), 
+                 AvgExpression = avg_expression, 
+                 CotinineGroup = exposure_group)
+
+# Box plot stratified by cotinine levels
+boxplot(AvgExpression ~ CotinineGroup, data = df, 
+        main = "Average Gene Expression Stratified by Cotinine Levels",
+        xlab = "Cotinine Exposure Group", 
+        ylab = "Average Gene Expression",
+        col = c("lightblue", "lightgreen", "salmon"))
+
+#boxplot(edata, main = "Gene Expression Levels Across Samples") 
+boxplot(edata, main = "Gene Expression Levels Across Samples", xaxt="n") 
+axis(1, at=1:ncol(edata), labels=1:ncol(edata))
+
+
+```
+
+
+To assess that normalization of the data was successful, I averaged the gene expression levels across all genes for each sample/patient. Each sample was then grouped by the independent variable as either low, medium or high cotinine levels (lowest 25%, IQR, highest 25%). The results of the average gene expressions per group can be seen on the box plot above. Here we see that the medians and overall distributions look the same between all groups. This is what we'd expect when our data has been normalized because quantile normalization (as used in the protocol for this data set) adjusts all samples so that the overall distribution of samples is equalized. This removes biases die to technical variability, as the overall median we are seeing for each group is a summary of 20k+ genes, we are investigating how the dependent variable affects individual gene expression, and don't expect a difference in the overall average level of all genes in the sample. I also did a quick boxplot of the entire data set - due to the number of samples it is very crowded, but you can still see that the IQRs and Medians across all samples are fairly uniform.
+
+```{r include=FALSE}
+rm(list=setdiff(ls(), c("edata","pheno","cc.mat")))
+```
+
+
+> 1. 30 points With the downloaded data set, fit a linear model using the continuous annotation as the dependent variable and each gene expression as the dependent variable. Then calculate p-values for each linear model fit using an anova. This should generate a p-value for each gene. Next, calculate a corrected p-value using the Bonferoni correction and one using a FDR calculation. Annotate all three of these p-value calculations onto the data table that was downloaded. Next, generate scatter plots with genes ordered by the significance level for each independent p-value measurement, and the -log10(p-value) on the y-axis. Describe all these findings in addition to any changes in gene order by significance that are observed by the different p-value adjustments.
+
+
+So originally I planned to use cotinine concentration as the independent variable and see how it affected gene expression, but as this question specifically states to use gene expression as the dependent variable, I'll flip the way I view the data to account for this.
+**Define Variables:**  
+Dependent continuous variable = "characteristics_ch1.11" cord blood cotinine (ng/ml).
+Independent variable = expression level.
+
+1. Limit data to placental samples.
+2. Use apply() for lm + anova over each row. 
+3. extract p-value, calc bonferoni + FDR, add both to df   
+3. Scatter plots   
+4. Describe
+```{r eval=FALSE, include=FALSE}
+#pheno (phenotype information for samples) shows there are 3 tissue samples per patient, we only want to look at samples from cord blood > limit it so we only have 1 sample per patient. 
+
+
+
+#Find accessions for sample: cord blood, outcome: smoker
+#cord_smoker_acc <- row.names(pheno[pheno$source_name_ch1=="cord blood, smoker",]["geo_accession"])
+#Find accessions for sample: cord blood, outcome: non-smoker
+#cord_nonsm_acc <- row.names(pheno[pheno$source_name_ch1=="cord blood, non-smoker",]["geo_accession"])
+
+#partition edata by cord_smoker_acc and cord_nonsm_acc
+#edata.smoker <- edata[,cord_smoker_acc]
+#edata.nonsm <- edata[,cord_nonsm_acc]
+
+
+
+```
+```{r}
+#limit data to placenta samples only
+pheno.plac <- pheno[pheno$source_name_ch1=="term placenta, non-smoker" | pheno$source_name_ch1=="term placenta, smoker",]
+edata.plac <- edata[,row.names(pheno.plac)]
+#get cotinine maternal blood concentration from pheno.plac
+cc.mat <- as.numeric(gsub(".*: ","",pheno.plac$characteristics_ch1.10))
+```
+
+
+```{r}
+# Create an empty data frame with gene names
+pvals <- data.frame(Gene = rownames(edata.plac))
+
+#fold change
+fold_change <- rowMeans(edata.plac[, pheno.plac$source_name_ch1 == "term placenta, smoker"]) /
+               rowMeans(edata.plac[, pheno.plac$source_name_ch1 == "term placenta, non-smoker"])
+
+# Compute raw p-values using apply()
+pvals$raw_pval <- apply(edata.plac, 1, function(gene_exprs){
+  # Create a data frame where gene expression aligns with cotinine levels
+  df.tmp <- data.frame(G= gene_exprs, CONC = cc.mat)
+  
+  # Fit linear model
+  lm.tmp <- lm(CONC ~ G, df.tmp)
+  
+  # Extract p-value from ANOVA
+  anova(lm.tmp)$"Pr(>F)"[1]
+})
+#view distribution of pvalues
+hist(pvals$raw_pval)
+
+#
+
+# Apply multiple testing corrections
+pvals$bonferroni_pval <- p.adjust(pvals$raw_pval, method = "bonferroni") #if time - raw_pval / number samples
+pvals$FDR_pval <- p.adjust(pvals$raw_pval, method = "fdr") #if time, try to replace with q-value script to find FDR
+
+# create copy of edata + merge into copy
+edata.results <- as.data.frame(edata.plac)
+edata.results <- cbind(edata.plac, pvals[, -1])  # Drop Gene column, keep p-values
+edata.results$Fold_Change <- fold_change
+
+
+```
+
+Order by raw, bonferroni, FDR + plot each
+
+```{r}
+# Order genes separately for each correction type
+pvals_raw <- pvals[order(pvals$raw_pval), ]
+pvals_bonferroni <- pvals[order(pvals$bonferroni_pval), ]
+pvals_fdr <- pvals[order(pvals$FDR_pval), ]
+
+# Scatter plots for each p-value type
+#oldpar <- par(mfrow= c(1,3)) -- made plots too skinny
+plot(-log10(pvals_raw$raw_pval), pch = 16, col = "blue", main = "Raw P-Values")
+plot(-log10(pvals_bonferroni$bonferroni_pval), pch = 16, col = "red", main = "Bonferroni P-Values")
+plot(-log10(pvals_fdr$FDR_pval), pch = 16, col = "green", main = "FDR P-Values")
+#par(oldpar)
+```
+```{r}
+# Order genes separately for each correction type
+pvals_raw <- pvals[order(pvals$raw_pval), ]
+pvals_bonferroni <- pvals[order(pvals$bonferroni_pval), ]
+pvals_fdr <- pvals[order(pvals$FDR_pval), ]
+
+# Merge fold change values
+pvals_raw$Fold_Change <- edata.results$Fold_Change[match(pvals_raw$Gene, rownames(edata.results))]
+pvals_bonferroni$Fold_Change <- edata.results$Fold_Change[match(pvals_bonferroni$Gene, rownames(edata.results))]
+pvals_fdr$Fold_Change <- edata.results$Fold_Change[match(pvals_fdr$Gene, rownames(edata.results))]
+
+
+fc_colors <- ifelse(pvals_raw$Fold_Change > 1, "red", ifelse(pvals_raw$Fold_Change < -1, "blue", "gray"))
+
+#plots, incorporating fold change
+plot(-log10(pvals_raw$raw_pval), col=fc_colors, pch=16, 
+     main="Raw P-Values", xlab="Genes Ordered by Significance", ylab="-log10(p-value)")
+
+plot(-log10(pvals_bonferroni$bonferroni_pval), col=fc_colors, pch=16, 
+     main="Bonferroni P-Values", xlab="Genes Ordered by Significance", ylab="-log10(p-value)")
+
+plot(-log10(pvals_fdr$FDR_pval), col=fc_colors, pch=16, 
+     main="FDR P-Values", xlab="Genes Ordered by Significance", ylab="-log10(p-value)")
+
+
+
+```
+
+
+```{r}
+#print top 5 genes for each sorting method 
+pvals_raw[1:5,]
+pvals_bonferroni[1:5,]
+pvals_fdr[1:5,]
+
+# Compare number of significant genes detected
+pvals.raw <- sum(pvals$raw_pval <0.05)
+pvals.Bonferroni <- sum(pvals$bonferroni_pval < 0.05)
+pvals.FDR <- sum(pvals$FDR_pval < 0.05)
+
+
+cat("Number of significant genes (raw):", pvals.raw, "\n")
+cat("Number of significant genes (Bonferroni):", pvals.Bonferroni, "\n")
+cat("Number of significant genes (FDR):", pvals.FDR, "\n")
+
+```
+**DISCUSS**   
+After using apply() to fit the linear model and ANOVA tests, I printed a histogram showing the distribution of raw p-values. I had a lot of trouble with this dataset—there are multiple tissues per patient and several concentrations to consider. I explored different combinations and initially missed incorporating fold change. While visualizing density histograms for different data combinations, I kept seeing uniform distributions. The only combination showing a slight skew toward p < 0.05 was maternal peripheral blood cotinine concentration paired with placental tissue for gene expression. Given how much time I spent familiarizing myself with this dataset, I suspected that the correlation between cotinine concentration (dependent variable) and gene expression (independent variable) might not be strong, but I proceeded to interpret the results.
+
+The linear model tests the null hypothesis that there is no association between gene expression and cotinine concentration. ANOVA then determines whether gene expression significantly explains variance in cotinine concentration, meaning we are looking for low p-values to identify potential correlations.The -log10(p-value) plot of raw p-values highlights genes where expression is significantly associated with cotinine concentration. However, given the large number of genes analyzed, we expect some false positives due to multiple hypothesis testing. As the number of genes increases, the chance of false positives also increases (rather than sample size alone driving false discoveries).
+I did two sets of plots, my originals, and then another set that color codes the genes based on their fold change. I know the Bonferroni correction is very conservative, however I didn't expect my significant genes to go from 1540 to 1. Likewise looking at the FDR correction, there are a few points on the left of the curve before it plateos out, but when ordering by most significant values there is also only one gene that that has a significant p-value (<0.05) from anova, however there are plenty around the 0.35 range, although this still accepts the null that there is no strong correlation between cotinine concentration and gene expression.
+
+
+
+>2. 30 points For each gene, compare average gene expression levels between samples separated by the same samples used in the fold change calculation performed when the dataset was downloaded using a Mann-Whitney U test of significance. Calculate FDR for this set of p-values and compare it with the results of Bonferroni corrected number of significant genes for the same set of p-values. Annotate the differences of expression you calculated along with the p-values that were obtained onto the data table. Next, compare these results to the p-value that is obtained from the downloaded data set. Describe your findings in plain English.
+
+Steps:   
+1. Compare avg gene exp levels b/w smokers/non-smokers w manW.  
+2. FDR for pvals.  
+3. Add exprs differences and pvals to df. 
+4. compare results to original pvals
+
+```{r}
+#find accessions for sample: maternal blood, outcome: smoker
+smoker_acc <- row.names(pheno.plac[pheno.plac$source_name_ch1=="term placenta, smoker",]["geo_accession"])
+#Find accessions for sample: cord blood, outcome: non-smoker
+nonsm_acc <- row.names(pheno.plac[pheno.plac$source_name_ch1=="term placenta, non-smoker",]["geo_accession"])
+
+# Partition data based on smoking status
+smoker_data <- edata.plac[, smoker_acc]
+nonsmoker_data <- edata.plac[, nonsm_acc]
+
+
+# Create df for results
+results <- data.frame(Gene = rownames(edata.plac), 
+                      Mean_Smoker = rowMeans(smoker_data),
+                      Mean_NonSmoker = rowMeans(nonsmoker_data),
+                      MWU_pval = NA)
+
+# Mann-Whittney U test for each gene
+for (i in 1:nrow(edata.plac)) {
+  results$MWU_pval[i] <- wilcox.test(smoker_data[i, ], nonsmoker_data[i, ], exact = F)$p.value
+}
+
+#test corrections
+results$MWU_FDR_pval <- p.adjust(results$MWU_pval, method = "fdr")  
+results$MWU_Bonf_pval <- p.adjust(results$MWU_pval, method = "bonferroni")  
+
+# Compare number of significant genes detected
+significant_raw <- sum(results$MWU_pval <0.05)
+significant_FDR <- sum(results$MWU_FDR_pval < 0.05)
+significant_Bonferroni <- sum(results$MWU_Bonf_pval < 0.05)
+
+cat("Number of significant genes (raw):", significant_raw, "\n")
+cat("Number of significant genes (FDR):", significant_FDR, "\n")
+cat("Number of significant genes (Bonferroni):", significant_Bonferroni, "\n")
+
+# Annotate results onto the dataset
+edata.results <- cbind(edata.results, results[, -1])  # Excluding the Gene column
+
+
+```
+**DISCUSS**  
+After running both ANOVA (with fold change) and the Wilcoxon test (without fold change), some clear differences emerged in how each method detected significant genes. The ANOVA approach, which assumes a linear relationship between gene expression and cotinine concentration, initially identified 1540 genes as significant when using raw p-values. However, after applying multiple testing corrections (Bonferroni and FDR), only 1 gene remained significant, highlighting the large number of false positives that were filtered out. The Wilcoxon test, on the other hand, which compares gene expression medians between smoker and non-smoker samples, identified 1277 significant genes at the raw p-value level—but once corrections were applied, none remained significant.
+
+This sugests that anova is sensitive to detecting subtle trends in gene expression, but because we are testing thousands of genes using hypothesis testing there are many that occur by chance, and we see that reduced to 1 significant gene appear once we apply the corrections. In the Mann-Whittney U test, which is non-parametric, we see that it doesn't initally find as many genes as significant, when we apply the corrections it removed all of them suggesting that even though expression differences between groups exist, they are not strong enough to be statistically significant across samples.
+
+
+> 3.  Compare results of significance of gene expression and patient age relationship as assessed by ANOVA on linear model fit (same as we did before) and by permutation approach. Do not analyze all genes. Use the most and least significant gene ordered by adjusted p-value that was calculated from the differential expression analysis performed when the dataset was downloaded. For permutation based significance assessment obtain distributions both of: a) regression coefficient for slope of the fit (as returned by coef) and b) variance explained by it (as returned by anova in “Sum Sq” attribute). Derive re-sampling-based p-values for both these statistics by comparing their values from original fit with their distributions simulated under the null hypothesis of no association between gene expression level and age (this is the null we implement by permuting ages and/or gene expressions!). Describe results in writing and present them in the form of histograms of simulated distributions. In summary, you will take the expression levels of the selected genes. For each gene, take a sample of the gene expression level across all samples (regardless of treatment). Then fit a linear model to the continuous variable and extract the slope of the linear model and the p-value calculated using an anova. Then compare these results to a linear model using all of the data (original lm). Calculate the percentage of times the permuted slope is greater than or equal to the actual slope and the number of times the permuted p-values and less than or equal to the actual p-value.  
+
+Steps:  
+1. Most and least significant genes. 
+2. permutations on genes
+
+```{r}
+most_significant <- pvals_raw$Gene[[1]]
+least_significant <- pvals_raw$Gene[[nrow(pvals)-1]]
+
+#create new df
+org.vs.permu <- data.frame(gene = c(most_significant, least_significant), original_pval = numeric(2), original_slope= numeric(2))
+#use cc.mat & most significant gene expression
+lm.tmp <- lm(CONC ~ G, data = data.frame(G = edata.plac[most_significant,], CONC = cc.mat))
+org.vs.permu$original_slope[1] <- lm.tmp$coefficients[2]
+org.vs.permu$original_pval[1] <- anova(lm.tmp)$"Pr(>F)"[1]
+org.vs.permu$original_sumSq[1] <- anova(lm.tmp)$"Sum Sq"[1]
+
+#use cc.mat & least significant gene expression
+lm.tmp <- lm(CONC ~ G, data = data.frame(G = edata.plac[least_significant,], CONC = cc.mat))
+org.vs.permu$original_slope[2] <- lm.tmp$coefficients[2]
+org.vs.permu$original_pval[2] <- anova(lm.tmp)$"Pr(>F)"[1]
+org.vs.permu$original_sumSq[2] <- anova(lm.tmp)$"Sum Sq"[1]
+
+```
+
+```{r}
+#permutate samples
+#create df to store results
+permute.df <- data.frame(matrix(ncol = 4, nrow = 10000))
+colnames(permute.df) <- c("most_pval", "most_slope", "least_pval", "least_slope")
+
+for (i in 1:10000){
+  x.tmp <- sample(edata.plac[most_significant,])
+  x.lm <- lm(x.tmp~cc.mat)
+  permute.df$most_pval[i] <- anova(x.lm)$"Pr(>F)"[1]
+  permute.df$most_slope[i] <- x.lm$coefficients[2]
+  permute.df$most_SumS[i] <- anova(x.lm)$"Sum Sq"[1]
+}
+
+for (i in 1:10000){
+  x.tmp <- sample(edata.plac[least_significant,])
+  x.lm <- lm(x.tmp~cc.mat)
+  permute.df$least_pval[i] <- anova(x.lm)$"Pr(>F)"[1]
+  permute.df$least_slope[i] <- x.lm$coefficients[2]
+  permute.df$least_SumS[i] <- anova(x.lm)$"Sum Sq"[1]
+}
+
+most_p_slope <- mean(permute.df$most_slope >= org.vs.permu$original_slope[1])
+most_p_sum_sq <- mean(permute.df$most_SumS >= org.vs.permu$original_sumSq[1])
+org.vs.permu$slope_percent[1] <- sum(permute.df$most_slope >= org.vs.permu$original_slope[1])/100
+org.vs.permu$pval_count[1] <- sum(permute.df$most_pval <= org.vs.permu$original_pval[1])
+
+
+org.vs.permu$slope_percent[2] <- sum(permute.df$least_slope >= org.vs.permu$original_slope[2])/100
+org.vs.permu$pval_count[2] <- sum(permute.df$least_pval <= org.vs.permu$original_pval[2])
+```
+
+```{r}
+par(mfrow=c(2,2)) # Arrange plots
+
+# Histogram of permuted slopes for most significant gene
+hist(permute.df$most_slope, col="blue", main="Most Sig Gene: Permuted Slopes", xlab="Slope")
+abline(v=org.vs.permu$original_slope[1], col="red", lwd=2)  # Mark original slope
+
+# Histogram of permuted p-values for most significant gene
+hist(permute.df$most_pval, col="green", main="Most Sig Gene: Permuted P-values", xlab="P-value")
+abline(v=org.vs.permu$original_pval[1], col="red", lwd=2)  # Mark original p-value
+
+# Histogram of permuted slopes for least significant gene
+hist(permute.df$least_slope, col="blue", main="Least Sig Gene: Permuted Slopes", xlab="Slope")
+abline(v=org.vs.permu$original_slope[2], col="red", lwd=2)  # Mark original slope
+
+# Histogram of permuted p-values for least significant gene
+hist(permute.df$least_pval, col="green", main="Least Sig Gene: Permuted P-values", xlab="P-value")
+abline(v=org.vs.permu$original_pval[2], col="red", lwd=2)  # Mark original p-value
+
+par(mfrow=c(1,1)) # Reset plot layout
+```
+```{r}
+org.vs.permu
+```
+
+**DISCUSS**
+Looking at the table, the raw p-values seemed to suggest that ILMN_2230683 had a strong association with the continuous variable, with a low p-value and high slope. But when multiple testing corrections were applied, it turned out to be a false positive—meaning its apparent significance was just noise. While permutation testing reinforced its low p-value, it doesn’t override the fact that adjusted corrections ruled it out. In contrast, ILMN_1655137 was never significant to begin with, and permutation results confirmed it behaved exactly as expected under random conditions.
+
+Looking at the histograms, I can see the distribution of permuted slopes and p-values for both the most significant and least significant genes. The slope distributions tell me that under the null hypothesis, where there's no real association between gene expression and patient age, values mostly cluster around zero—which makes sense, since randomization should break any trends. If the actual slope (red line) sits outside the bulk of permuted values, then there's reason to think this gene-age association is real rather than just noise. Same idea for the p-values: the distribution shows what happens under randomization, and if the original p-value is noticeably smaller than most permuted values, then it’s probably not just by chance.
