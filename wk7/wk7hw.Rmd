@@ -1,0 +1,298 @@
+---
+title: Week 7 Homework
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: 
+  html_notebook:
+    code_folding: 
+    number_sections: true
+---
+```{r}
+rm(list=setdiff(ls(), c("geodata", "eData", "pheno")))
+```
+
+>Q2: 25 points Download a data set from GEO and find the feature that has the greatest predictive value for an outcome.
+
+- We are using a simple lm for the entire dataset - good for exploratory analysis.  
+
+**Download data & check for normalization**   
+
+```{r include=FALSE}
+library(GEOquery)
+geodata <- getGEO("GSE14333", GSEMatrix = TRUE)[[1]]
+eData <- exprs(geodata)
+pheno <- pData(geodata)
+
+save(eData, file = "GSE14333_exprs.Rda")
+save(pheno, file = "GSE14333_pData.Rda")
+```
+
+```{r}
+
+#Print type of expression data
+geodata@experimentData@other[["type"]]
+
+
+#Since array - visualize normalization with box plots
+boxplot(eData, main = "All Samples")
+
+#too crowded, boxplot first 30, plot sample medians and varainces
+sample_med <- apply(eData, 2, median)
+sample_var <- apply(eData, 2, var)
+
+oldpar <- par(mfrow = c(1, 2))
+#first 30 samples
+boxplot(eData[, 1:30], main = "First 30 Samples")
+# plot med/var of all samples
+plot(sample_med, type = "b", col = "blue", ylab = "Value", xlab = "Sample",
+     main = "Sample Medians and Variances")
+lines(sample_var, type = "b", col = "red")
+legend("topright", legend = c("Median", "Variance"),
+       col = c("blue", "red"), lty = 1, pch = 1)
+par(oldpar)
+```
+
+**Data is normalized**   
+The box plot of all 290 samples is very crowded, although you can see a uniform distribution of data, its not very clear. I went ahead to then perform box plots of the first 30 samples, we can see their distributions are all uniform, and I also calculated the median and variance of every sample and plotted them. We can see that the medians and variances are also uniform across samples, therefore this data set is very well normalized. 
+
+**Predictive outcome vs association**  
+These are different concepts, I began looking at association - then realized the gene with the greatest association doesn't necessarily mean it has the greatest predictive outcome. I kept both sets of code so that I could compare.  
+**Find gene with greatest association for survival time**
+
+```{r}
+#all patient characteristics in one column, separate Disease Free Survival Time, and Censored into new columns, select only non-censored rows b/c for censored cases the true event time is unknown and and will affect the analysis.
+
+#extract & create new column for DFS_Time and DFS_Cens
+pheno$DFS_Time <- as.numeric(sub(".*DFS_Time: ([^;]+);.*", "\\1", pheno$characteristics_ch1))
+pheno$DFS_Cens <- as.numeric(sub(".*DFS_Cens: ([^;]+);.*", "\\1", pheno$characteristics_ch1))
+
+
+```
+
+Warning: NAs introduced by coercion --> does this mean that they are not all labeled the same? Lets check it out.
+
+```{r}
+#find where NA's have been added in, check original pheno$characteristics_ch1 to see what they look like.
+cens.na.idx <- is.na(pheno$DFS_Cens)
+time.na.idx <- is.na(pheno$DFS_Time)
+#are they on the same rows?
+identical(cens.na.idx, time.na.idx)
+
+#yes, lets see what they look like in the original pData
+pheno$characteristics_ch1[cens.na.idx][1:15]#originals aren't labeled differently - just NA. Will exclude from analysis.
+
+#Get create data frame of expression values where time is not censored or NA
+eData_filtered <-  eData[, pheno$DFS_Cens==0 & !is.na(pheno$DFS_Time)]
+#vector of disease free survival times whre time is not consored or NA
+dfs_time <- pheno[pheno$DFS_Cens==0 & !is.na(pheno$DFS_Time),]$DFS_Time
+
+```
+Dependent variable = Uncensored Disease free survival time (years).  
+Independent variable = Genes
+
+```{r}
+#For association we can reverse Y~X to X~Y
+library(limma)
+dfs.design <- model.matrix(~dfs_time) #2 columns, 50 rows - rows are each sample
+dfs.exprs.model <- lmFit(eData_filtered, dfs.design)
+fit2 <- eBayes(dfs.exprs.model)
+best.wholemodel <- rownames(topTable(fit2, coef = "dfs_time"))[1]
+cat("Gene with greatest associaation from whole model fit:", best.wholemodel)
+
+```
+
+**Find gene with greatest predictive outcome for survival time**  
+```{r}
+# eData_filtered = genes (rows) x samples (columns)
+# dfs_time = numeric vector, length = number of samples
+
+gene_r2 <- apply(eData_filtered, 1, function(gene_exprs) {
+  summary(lm(dfs_time ~ gene_exprs))$r.squared
+})
+
+#Larger r2 = model explains most variation, find gene with highest r2
+best.r2.idx <- which.max(gene_r2) #find index of largest r2 value
+best.r2.gene.name <- rownames(eData_filtered)[best.r2.idx] #select gene name by the index of largest r2 value
+best.r2 <- gene_r2[best.r2.idx] #extract r2 value
+cat("Best predictor gene:", best.r2.gene.name, "\nR-squared:", best.r2)
+
+```
+
+```{r}
+#plot association of 202737_s_at and continuous variable
+dfst.202737 <- data.frame(G=eData_filtered["202737_s_at",], DFST=dfs_time)
+#plot original data
+plot(dfst.202737[,c("G", "DFST")],
+     xlab="202737_s_at",
+     ylab="Disease Free Survival Time (non-censored)")
+
+#fit model & draw predicted values
+lm.202737_s_at <- lm(DFST~G, dfst.202737)
+points(dfst.202737$G, 
+       predict(lm.202737_s_at),
+       col="green", pch=1)
+```
+
+**DISCUSS**\
+So based on the two methods I can see that when using the whole data set the gene with the strongest association is also the gene with the greatest predictor of disease free survival time. I wanted to do this both ways because there could be different outcomes - If a gene had the greatest association (p-value) but not the greatest predictive power (highest r2 value) that would suggest that even though the correlation is statistically significant, the model generated may not explain much of the variance of the the data. This could be due to to outliers or that the relationship isn't linear even though they're correlated, for example a monotonic correlation. The fact that 202737_s_at is both the most correlated and the best predictor indicates that the relationship between this gene and disease free survival time is strong and linear.When considering an r-squared value, which ranges from 0-1, this gene is still on the lower side with the model explaining approx 40% of the variability in the data. I interperate this to mean that the gene is informative but there are also other factors influencing disease free survival time, which makes sense as survival time for cancer is a complex variable and I'd expect there would be many factors that contribute to this. Therefore, I believe that a model explaining 40% of variation is meaningful.\
+
+The plot shows the observed data points of gene expression versus disease-free survival time, overlaid with the predicted values from the linear model. There is a clear negative association between the variables: as expression of 202737_s_at increases, disease-free survival time decreases. This suggests that higher expression of this gene may be linked to greater cancer severity. The green line represents the best fit from the linear model, while the black circles show the actual data points. Although there is some variability around the fitted line, particularly on the left side, the overall negative trend is evident.\
+
+> 50 points Use cross-validation and bootstrap in order to identify the gene with the most significant association with the continuous annotation variable. This was done for cross-validation in the Notes and you are welcome to adapt some of the code to answer this question. Do the same for bootstrap with n=50 simulations. To answer this question, you will need to do the following: For each simulation (50) split the data set into 5 groups for cross validation. Then, for each cross validation group, train a linear model on the training group. from this training group, select the best fit gene and save it to a vector (e.g. called all.best.xval.genes. Next, refit the model on the training data set using the best fit gene, extract the squared errors, and save them to a vector. Finally, return the top 5 genes that are the best fit the most number of times. Repeat this analysis and except instead of running the simulation 50 times, run it 250 times (or more!) and compare the results of the top most frequently identified genes, and the mean squared error estimates using a boxplot. Next, discuss the effect of an outlier in these results, as well as any differences in sample normalization.
+
+- We are combining the cross validation and bootstrapping techniques into one rather than approaching them separately like in the notes. 
+
+
+```{r eval=FALSE, include=FALSE}
+#create df to store gene names and r2 values
+gene.r2 <- data.frame(gene= character(), r2= numeric())
+#bootstrapping: 50 sims - where each sim splits the data into new groups:
+
+#split data set into 5 groups
+n.xval <- 5
+r2.xval <- c()
+set.seed(123)
+xval.grps <- sample((1:dim(eData_filtered)[2])%%n.xval+1)
+#create design matrix
+dmatrix <- cbind(rep(1, length(dfs_time)), dfs_time)
+#loop through number of groups
+for (i.xval in 1:n.xval){
+  #For training groups - fit linear model:
+  exprs.train <- eData_filtered[,xval.grps!=i.xval] #eData of training set
+  dmatrix.train <- dmatrix[xval.grps!=i.xval,] 
+  dfs.fit.train <- lmFit(exprs.train, dmatrix.train)
+  best.gene <- rownames(topTable(eBayes(dfs.fit.train), coef = "dfs_time"))[1] #best fit gene
+  #best.gene <- rownames( topTable( eBayes(dfs.fit.train), dfs_time))[1] 
+  cat(best.gene, " ", fill = i.xval==n.xval)
+  
+  #use best gene to fit lm on training data still
+  tmp.df <- data.frame(G=eData_filtered[best.gene,], DFST=dfs_time) #temp data frame for convenience (all data train and test)
+  lm.xval <- lm(DFST~G, tmp.df[xval.grps!=i.xval,]) #use only training data
+  
+  #predict values with test set
+  test.pred <- predict(lm.xval, tmp.df[xval.grps==i.xval,]) #select rows of tmp.df that are the test group set (current i.xval)
+  r2.xval <- c(r2.xval, (test.pred-tmp.df[xval.grps==i.xval, "DFST"])^2)
+}
+##need to work out how to extract each gene with its r2 values, save to another tmp df within loop (cols = gene, r2(vector?)), then at end of loop add the tmp df to end of global gene.r2 df. Then can count gene names, select top 5.
+
+```
+
+**For n=50**\
+```{r}
+##as function
+bootstrap_cross_validation <- function(eData_filtered, dfs_time, n.sims = 50, n.xval=5){
+  set.seed(123) #for same results each time
+  total.best.genes <- c() #to store across bootstrap cycles
+  total.r2 <- list()
+  #create design matrix
+  dmatrix <- cbind(rep(1, length(dfs_time)), dfs_time)
+  
+  #each loop of bootstrap
+  for (sim in 1:n.sims){
+    #assign samples to groups
+    xval.grps <- sample((1:dim(eData_filtered)[2])%%n.xval+1)
+    sim.best.genes <- c() #best genes of this round of bootstrap
+    sim.r2 <- c() #r2 values for this round of bootstrap
+    
+    #loop through each of the 5 cross val groups within each bootstrap cycle
+    for (i.xval in 1:n.xval){
+      #For training groups - fit linear model:
+      exprs.train <- eData_filtered[,xval.grps!=i.xval] #eData of training set
+      dmatrix.train <- dmatrix[xval.grps!=i.xval,] 
+      dfs.fit.train <- lmFit(exprs.train, dmatrix.train)
+      #best gene for i.xval-th loop
+      best.gene <- rownames(topTable(eBayes(dfs.fit.train), coef = "dfs_time"))[1] #best fit gene
+      #add to best genes for this simulation
+      sim.best.genes <- c(sim.best.genes, best.gene)
+      
+      
+      #use best gene to fit lm on training data 
+      tmp.df <- data.frame(G=eData_filtered[best.gene,], DFST=dfs_time) #temp data frame for convenience (uses train and test data)
+      lm.xval <- lm(DFST~G, tmp.df[xval.grps!=i.xval,]) #use only training data
+      
+      #predict values with test group
+      test.pred <- predict(lm.xval, tmp.df[xval.grps==i.xval,]) #select rows of tmp.df that are the test group set (current i.xval)
+      sim.r2 <- c(sim.r2, (test.pred-tmp.df[xval.grps==i.xval, "DFST"])^2)
+    }
+    
+    #add this simulations best genes/r2 to final vector/list for entirety of bootstrapping
+    total.best.genes <- c(total.best.genes, sim.best.genes)
+    total.r2[[sim]] <- sim.r2 #assign the sim.r2 as a list that correlates with the round of bootstrap
+  }
+  
+  #return total.best.genes and total.r2 as a list so can access each 
+  list(total.best.genes= total.best.genes, total.r2= total.r2)
+}
+
+results.50 <- bootstrap_cross_validation(eData_filtered, dfs_time, n.sims=50)
+
+#Find top 5 genes across all simulations - use table to find counts
+n50.genes <- table(results.50$total.best.genes)
+n50.top.genes <- sort(n50.genes, decreasing = TRUE)[1:5]
+#calculate MSE
+#total.r2 is a list containing vectors of sim r2s, calculate the MSE for each sim so we have a range of data to plot
+n50.MSE <- sapply(results.50$total.r2, mean) #sapply for lists
+
+```
+
+
+**For n=300**\
+```{r}
+#call function with n.sims=300
+results.300 <- bootstrap_cross_validation(eData_filtered, dfs_time, n.sims=300)
+n300.genes <- table(results.300$total.best.genes)
+n300.top.genes <- sort(n300.genes, decreasing = TRUE)[1:5]
+n300.MSE <- sapply(results.300$total.r2, mean)
+```
+
+```{r}
+#compare n.sims=50 to n.sims=300
+cat("Top 5 genes after 50 simulations:\n")
+print(names(n50.top.genes))
+cat("\nCounts:\n")
+print(n50.top.genes)
+
+cat("\nTop 5 genes after 300 simulations:\n")
+print(names(n300.top.genes))
+cat("\nCounts:\n")
+print(n300.top.genes)
+
+#are top genes the same in each?
+top_genes <- unique(c(names(n50.top.genes), names(n300.top.genes)))
+
+# #get counts for each gene
+# freq_50 <- as.numeric(n50.genes[top_genes])
+# freq_300 <- as.numeric(n300.genes[top_genes])
+# 
+# # Normalize by total selections in each run
+# prop_50 <- freq_50 / sum(freq_50)
+# prop_300 <- freq_300 / sum(freq_300)
+
+prop_50 <- freq_50 / (n.xval * 50)
+prop_300 <- freq_300 / (n.xval * 300)
+
+# Barplot of proportions
+barplot(
+  rbind(prop_50, prop_300),
+  beside = TRUE,
+  names.arg = top_genes,
+  col = c("blue", "green"),
+  legend.text = c("n=50", "n=300"),
+  ylab = "Proportion Selected",
+  main = "Normalized Top Gene Selection Frequency"
+)
+
+#box plot residuals squared of 50 vs 300 simulation
+boxplot(list(`n=50` = n50.MSE, `n=300` = n300.MSE),
+        ylab = "Mean Squared Error",
+        main = "Comparison of MSE for 50 vs 300 Simulations",
+        col = c("blue", "green"))
+```
+**DISCUSS** Reword\
+The boxplot of mean squared errors (MSE) compares the predictive performance of your cross-validated models across 50 and 300 bootstrap simulations. The distribution of MSEs is similar between the two, but the boxplot for 50 simulations shows more variability and a greater number of outliers. This indicates that with fewer simulations, the model’s performance estimates are less stable and more susceptible to random fluctuations or unusual data splits. As the number of simulations increases to 300, the MSE distribution becomes tighter and more consistent, reflecting a more reliable estimate of model performance. Outliers in the MSE boxplot represent simulations where the model performed particularly poorly, possibly due to challenging data splits or the presence of influential samples in the test set. These outliers highlight the importance of using a larger number of simulations to obtain robust and generalizable performance metrics.
+
+The barplot of normalized selection frequency for the top genes illustrates how often each gene was chosen as the "best" predictor across all simulations, normalized to allow direct comparison between the 50 and 300 simulation runs. The results show that certain genes are consistently selected as top predictors, regardless of the number of simulations, indicating their robust association with the outcome. However, the relative frequency of selection for some genes shifts as the number of simulations increases, suggesting that a larger number of simulations helps to more accurately identify the most reliable predictors and reduces the influence of random chance.
+
+Outliers in both plots can be caused by unusual data splits, influential samples, or the presence of outliers in the original data. These can disproportionately affect model selection and performance estimates, especially when the number of simulations is low. Increasing the number of simulations helps to mitigate the impact of such outliers by averaging over more random splits.
+
+Sample normalization can also influence these results. If gene expression data are not properly normalized, technical variation or batch effects may drive gene selection and inflate MSEs, leading to less reliable and less reproducible results. Proper normalization ensures that the observed associations and predictive performance reflect true biological signals rather than artifacts of data processing.
