@@ -7,17 +7,67 @@ output:
     code_folding: 
     number_sections: true
 ---
-```{r}
+```{r include=FALSE}
 rm(list=setdiff(ls(), c("geodata", "eData", "pheno")))
 ```
+>Q1: 25 points Discuss cross validation and describe how to partition data for cross validation and the potential issues that may occur.
+
+Cross validation is an external validation technique used to evaluate how well a regression model performs on new, unseen data. This is important because, while we may have learned how to fit a regression model to our dataset, we often use the entire dataset (filtered to the variables of interest) for training. As a result, the model has already used/seen all available data, leaving no separate subset to test for overfitting or to assess how well the model generalizes. Often when we build a regression model on observed data the purpose is to then use it for unknown data, to predict the result of the dependent variable based on new inputs of the independent variables (gene expression).  
+
+To ensure the model is robust, not overfitting to outliers or noise, and consistent in its predictions, we can use cross validation. This involves splitting the data into several equally sized (or nearly equal) groups. The model is trained on a subset of these groups while keeping one or more hidden from the training process. The hidden groups are then used to test the model’s performance. Since we know the actual values of both the independent and dependent variables in the test group, we can compare them to the model’s predictions. The differences between predicted and actual values are used to calculate errors, which are then squared and averaged to compute the mean squared error which is a metric of model performance. A lower MSE indicates better generalization to new data.  
+
+The top issues I found that could arise with cross validation stems from imbalanced data and data leakage. Imbalances in the data set could be seen as one categorical variable or label appears much more often than the others, therefore the partitioned groups for training may not include enough examples of the less common category or any at all. This could make the model seem more accurate than it actually is because it could learn to always predict the majority category and still get a good MSE. Data leakage occurs when the information set aside in the testing group is used to train the model. Even if the data has been partitioned, data leakage can occur if normalization and feature selection are applied to the entire data set before partitioning for cross validation. This happens because calculations such as the mean and standard deviation for normalization, or identifying the most predictive features are based on all the data, including the portions that will later serve as test groups of data. As a result, even though the model hasn’t been trained yet, it still benefits from information that comes from the test data. 
+```{r}
+#split data set into 5 groups
+
+n.xval <- 5
+s2.xval <- numeric(n.xval)
+genes.xval <- character(n.xval)
+set.seed(12)
+dmatrix <- cbind(rep(1, length(dfs_time)), dfs_time)
+xval.grps <- sample((1:dim(eData_filtered)[2])%%n.xval+1) 
+for (i.xval in 1:n.xval){
+  # For training groups - fit linear model:
+  exprs.train <- eData_filtered[,xval.grps!=i.xval] # eData of training set
+  dmatrix.train <- dmatrix[xval.grps!=i.xval,] 
+  dfs.fit.train <- lmFit(exprs.train, dmatrix.train)
+  # best gene for this iteration
+  best.gene <- rownames(topTable(eBayes(dfs.fit.train), coef = "dfs_time"))[1]
+  genes.xval[i.xval] <- best.gene
+  
+  tmp.df <- data.frame(G=eData_filtered[best.gene,], DFST=dfs_time)
+  lm.xval <- lm(DFST~G, tmp.df[xval.grps!=i.xval,])
+  
+  test.pred <- predict(lm.xval, tmp.df[xval.grps==i.xval,])
+  s2.xval[i.xval] <- mean((test.pred-tmp.df[xval.grps==i.xval, "DFST"])^2)
+}
+
+```
+The code above is modified from question 3 shows how the partitioned data is assigned to the selected number of groups/folds we choose to conduct the cross validation.  `sample((1:dim(eData_filtered)[2])%%n.xval+1))` can be split into the following:\
+`1:dim(eData_filtered)[2]` creates a sequence of numbers between 1 and the number of columns in the data frame (representing samples).\
+`%%n.xval+1` uses the modello operator to divide each number in the sequence by our number of groups (5) and store the remainder. So now our sequence is a equal proportions of numbers 1-5 (as equal as possible depending on the number of samples)\
+`sample()` then permutes (shuffles) the sequence of 1-5's so that xval.grps is a vector of the same length of the number of samples but the contain a random ordering of numbers 1-5. The index of each group number in xval.grps will correspond to the index of the samples in our expression data, and each sample will be assigned to a group based on the value of the xval.grps at that same index.\
+
+In the for loop we iterate across the number of groups we have selected, and assign the expression data for all groups except the current group as the training set of data for the model. Once the model has been made, we use the training data to find the best fit gene according to the model, then use the test set of expression data (the current i.xval) to predict the dependent values according to the same model. This loops runs 5 times, meaning that each fold/group of data has the opportunity of being the test data once each. We can then extract our residual variance from each loop and calculate the mean which will be our MSE, depicting how well our model is able to generalize the training data, and how it responds to new input. \
+See below for visualization - Each bar shows the mean squared error for that fold, and the gene labels show which gene was selected as the top predictor for each. Based on this plot, the linear model for 202737_s_at has the lowest s2, therefore the model better generalizes the data.
+
+```{r}
+barplot(
+  s2.xval, names.arg = genes.xval,
+  las = 2, col = "blue",
+  main = "Squared Error by Top Gene",
+  ylab = "Mean Squared Error (s2)",
+  xlab = "Top Gene (per fold)"
+)
+
+```
+
 
 >Q2: 25 points Download a data set from GEO and find the feature that has the greatest predictive value for an outcome.
 
-- We are using a simple lm for the entire dataset - good for exploratory analysis.  
-
 **Download data & check for normalization**   
 
-```{r include=FALSE}
+```{r eval=FALSE, echo=TRUE, message=FALSE, warning=FALSE}
 library(GEOquery)
 geodata <- getGEO("GSE14333", GSEMatrix = TRUE)[[1]]
 eData <- exprs(geodata)
@@ -28,10 +78,6 @@ save(pheno, file = "GSE14333_pData.Rda")
 ```
 
 ```{r}
-
-#Print type of expression data
-geodata@experimentData@other[["type"]]
-
 
 #Since array - visualize normalization with box plots
 boxplot(eData, main = "All Samples")
@@ -79,7 +125,8 @@ time.na.idx <- is.na(pheno$DFS_Time)
 identical(cens.na.idx, time.na.idx)
 
 #yes, lets see what they look like in the original pData
-pheno$characteristics_ch1[cens.na.idx][1:15]#originals aren't labeled differently - just NA. Will exclude from analysis.
+pheno$characteristics_ch1[cens.na.idx][1:15]
+#originals aren't labeled differently - just NA. Will exclude from analysis.
 
 #Get create data frame of expression values where time is not censored or NA
 eData_filtered <-  eData[, pheno$DFS_Cens==0 & !is.na(pheno$DFS_Time)]
@@ -138,19 +185,19 @@ So based on the two methods I can see that when using the whole data set the gen
 
 The plot shows the observed data points of gene expression versus disease-free survival time, overlaid with the predicted values from the linear model. There is a clear negative association between the variables: as expression of 202737_s_at increases, disease-free survival time decreases. This suggests that higher expression of this gene may be linked to greater cancer severity. The green line represents the best fit from the linear model, while the black circles show the actual data points. Although there is some variability around the fitted line, particularly on the left side, the overall negative trend is evident.\
 
-> 50 points Use cross-validation and bootstrap in order to identify the gene with the most significant association with the continuous annotation variable. This was done for cross-validation in the Notes and you are welcome to adapt some of the code to answer this question. Do the same for bootstrap with n=50 simulations. To answer this question, you will need to do the following: For each simulation (50) split the data set into 5 groups for cross validation. Then, for each cross validation group, train a linear model on the training group. from this training group, select the best fit gene and save it to a vector (e.g. called all.best.xval.genes. Next, refit the model on the training data set using the best fit gene, extract the squared errors, and save them to a vector. Finally, return the top 5 genes that are the best fit the most number of times. Repeat this analysis and except instead of running the simulation 50 times, run it 250 times (or more!) and compare the results of the top most frequently identified genes, and the mean squared error estimates using a boxplot. Next, discuss the effect of an outlier in these results, as well as any differences in sample normalization.
+>3. 50 points Use cross-validation and bootstrap in order to identify the gene with the most significant association with the continuous annotation variable. This was done for cross-validation in the Notes and you are welcome to adapt some of the code to answer this question. Do the same for bootstrap with n=50 simulations. To answer this question, you will need to do the following: For each simulation (50) split the data set into 5 groups for cross validation. Then, for each cross validation group, train a linear model on the training group. from this training group, select the best fit gene and save it to a vector (e.g. called all.best.xval.genes. Next, refit the model on the training data set using the best fit gene, extract the squared errors, and save them to a vector. Finally, return the top 5 genes that are the best fit the most number of times. Repeat this analysis and except instead of running the simulation 50 times, run it 250 times (or more!) and compare the results of the top most frequently identified genes, and the mean squared error estimates using a boxplot. Next, discuss the effect of an outlier in these results, as well as any differences in sample normalization.
 
-- We are combining the cross validation and bootstrapping techniques into one rather than approaching them separately like in the notes. 
+- We are combining the cross validation and bootstrapping techniques into one rather than approaching them separately like in the part 1 notes. 
 
 
 ```{r eval=FALSE, include=FALSE}
-#create df to store gene names and r2 values
-gene.r2 <- data.frame(gene= character(), r2= numeric())
+#create df to store gene names and s2 values
+gene.s2 <- data.frame(gene= character(), s2= numeric())
 #bootstrapping: 50 sims - where each sim splits the data into new groups:
 
 #split data set into 5 groups
 n.xval <- 5
-r2.xval <- c()
+s2.xval <- c()
 set.seed(123)
 xval.grps <- sample((1:dim(eData_filtered)[2])%%n.xval+1)
 #create design matrix
@@ -171,9 +218,9 @@ for (i.xval in 1:n.xval){
   
   #predict values with test set
   test.pred <- predict(lm.xval, tmp.df[xval.grps==i.xval,]) #select rows of tmp.df that are the test group set (current i.xval)
-  r2.xval <- c(r2.xval, (test.pred-tmp.df[xval.grps==i.xval, "DFST"])^2)
+  s2.xval <- c(s2.xval, (test.pred-tmp.df[xval.grps==i.xval, "DFST"])^2)
 }
-##need to work out how to extract each gene with its r2 values, save to another tmp df within loop (cols = gene, r2(vector?)), then at end of loop add the tmp df to end of global gene.r2 df. Then can count gene names, select top 5.
+##need to work out how to extract each gene with its s2 values, save to another tmp df within loop (cols = gene, s2(vector?)), then at end of loop add the tmp df to end of global gene.s2 df. Then can count gene names, select top 5.
 
 ```
 
@@ -181,9 +228,9 @@ for (i.xval in 1:n.xval){
 ```{r}
 ##as function
 bootstrap_cross_validation <- function(eData_filtered, dfs_time, n.sims = 50, n.xval=5){
-  set.seed(123) #for same results each time
+  set.seed(12) #for same results each time
   total.best.genes <- c() #to store across bootstrap cycles
-  total.r2 <- list()
+  total.s2 <- list()
   #create design matrix
   dmatrix <- cbind(rep(1, length(dfs_time)), dfs_time)
   
@@ -192,7 +239,7 @@ bootstrap_cross_validation <- function(eData_filtered, dfs_time, n.sims = 50, n.
     #assign samples to groups
     xval.grps <- sample((1:dim(eData_filtered)[2])%%n.xval+1)
     sim.best.genes <- c() #best genes of this round of bootstrap
-    sim.r2 <- c() #r2 values for this round of bootstrap
+    sim.s2 <- c() #s2 values for this round of bootstrap
     
     #loop through each of the 5 cross val groups within each bootstrap cycle
     for (i.xval in 1:n.xval){
@@ -212,16 +259,16 @@ bootstrap_cross_validation <- function(eData_filtered, dfs_time, n.sims = 50, n.
       
       #predict values with test group
       test.pred <- predict(lm.xval, tmp.df[xval.grps==i.xval,]) #select rows of tmp.df that are the test group set (current i.xval)
-      sim.r2 <- c(sim.r2, (test.pred-tmp.df[xval.grps==i.xval, "DFST"])^2)
+      sim.s2 <- c(sim.s2, (test.pred-tmp.df[xval.grps==i.xval, "DFST"])^2)
     }
     
-    #add this simulations best genes/r2 to final vector/list for entirety of bootstrapping
+    #add this simulations best genes/s2 to final vector/list for entirety of bootstrapping
     total.best.genes <- c(total.best.genes, sim.best.genes)
-    total.r2[[sim]] <- sim.r2 #assign the sim.r2 as a list that correlates with the round of bootstrap
+    total.s2[[sim]] <- sim.s2 #assign the sim.s2 as a list that correlates with the round of bootstrap
   }
   
-  #return total.best.genes and total.r2 as a list so can access each 
-  list(total.best.genes= total.best.genes, total.r2= total.r2)
+  #return total.best.genes and total.s2 as a list so can access each 
+  list(total.best.genes= total.best.genes, total.s2= total.s2)
 }
 
 results.50 <- bootstrap_cross_validation(eData_filtered, dfs_time, n.sims=50)
@@ -230,8 +277,8 @@ results.50 <- bootstrap_cross_validation(eData_filtered, dfs_time, n.sims=50)
 n50.genes <- table(results.50$total.best.genes)
 n50.top.genes <- sort(n50.genes, decreasing = TRUE)[1:5]
 #calculate MSE
-#total.r2 is a list containing vectors of sim r2s, calculate the MSE for each sim so we have a range of data to plot
-n50.MSE <- sapply(results.50$total.r2, mean) #sapply for lists
+#total.s2 is a list containing vectors of sim s2s, calculate the MSE for each sim so we have a range of data to plot
+n50.MSE <- sapply(results.50$total.s2, mean) #sapply for lists
 
 ```
 
@@ -242,10 +289,10 @@ n50.MSE <- sapply(results.50$total.r2, mean) #sapply for lists
 results.300 <- bootstrap_cross_validation(eData_filtered, dfs_time, n.sims=300)
 n300.genes <- table(results.300$total.best.genes)
 n300.top.genes <- sort(n300.genes, decreasing = TRUE)[1:5]
-n300.MSE <- sapply(results.300$total.r2, mean)
+n300.MSE <- sapply(results.300$total.s2, mean)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 #compare n.sims=50 to n.sims=300
 cat("Top 5 genes after 50 simulations:\n")
 print(names(n50.top.genes))
@@ -260,16 +307,9 @@ print(n300.top.genes)
 #are top genes the same in each?
 top_genes <- unique(c(names(n50.top.genes), names(n300.top.genes)))
 
-# #get counts for each gene
-# freq_50 <- as.numeric(n50.genes[top_genes])
-# freq_300 <- as.numeric(n300.genes[top_genes])
-# 
-# # Normalize by total selections in each run
-# prop_50 <- freq_50 / sum(freq_50)
-# prop_300 <- freq_300 / sum(freq_300)
-
-prop_50 <- freq_50 / (n.xval * 50)
-prop_300 <- freq_300 / (n.xval * 300)
+# # Normalize by total selections
+prop_50 <- freq_50 / (5 * 50)
+prop_300 <- freq_300 / (5 * 300)
 
 # Barplot of proportions
 barplot(
@@ -288,11 +328,10 @@ boxplot(list(`n=50` = n50.MSE, `n=300` = n300.MSE),
         main = "Comparison of MSE for 50 vs 300 Simulations",
         col = c("blue", "green"))
 ```
-**DISCUSS** Reword\
-The boxplot of mean squared errors (MSE) compares the predictive performance of your cross-validated models across 50 and 300 bootstrap simulations. The distribution of MSEs is similar between the two, but the boxplot for 50 simulations shows more variability and a greater number of outliers. This indicates that with fewer simulations, the model’s performance estimates are less stable and more susceptible to random fluctuations or unusual data splits. As the number of simulations increases to 300, the MSE distribution becomes tighter and more consistent, reflecting a more reliable estimate of model performance. Outliers in the MSE boxplot represent simulations where the model performed particularly poorly, possibly due to challenging data splits or the presence of influential samples in the test set. These outliers highlight the importance of using a larger number of simulations to obtain robust and generalizable performance metrics.
+**DISCUSS** \
 
-The barplot of normalized selection frequency for the top genes illustrates how often each gene was chosen as the "best" predictor across all simulations, normalized to allow direct comparison between the 50 and 300 simulation runs. The results show that certain genes are consistently selected as top predictors, regardless of the number of simulations, indicating their robust association with the outcome. However, the relative frequency of selection for some genes shifts as the number of simulations increases, suggesting that a larger number of simulations helps to more accurately identify the most reliable predictors and reduces the influence of random chance.
+The boxplot of mean squared errors compares how well the cross-validated models performed across 50 and 300 bootstrap simulations. The MSE distributions look pretty similar, but the boxplot for 50 simulations shows more spread, while the one for 300 simulations has a tighter range and actually a few more outliers. This is probably because running more simulations gives more chances to hit those unlucky ways of splitting the data. With fewer simulations, the model’s performance estimates are less stable and can change more just by chance or by how the data gets divided into folds. When you increase to 300 simulations, the MSEs get more consistent, so you get a better idea of how the model really performs. The outliers in both boxplots are from simulations where the model didn’t do well, which can happen if the test samples were just harder to predict or the data split was tough. Overall, using more simulations helps smooth out these random effects and gives a more reliable picture of model performance.
 
-Outliers in both plots can be caused by unusual data splits, influential samples, or the presence of outliers in the original data. These can disproportionately affect model selection and performance estimates, especially when the number of simulations is low. Increasing the number of simulations helps to mitigate the impact of such outliers by averaging over more random splits.
+The barplot of selection frequency for the top genes shows how often each gene was picked as the best predictor across all simulations. I normalized the counts so you can directly compare the results from the 50 and 300 simulation runs. The plot shows that some genes are chosen as top predictors pretty consistently, no matter how many simulations are run, which means they have a strong link to the outcome. But for a few genes, the proportion changes when you go from 50 to 300 simulations. This suggests that running more simulations helps to better sort out which genes are truly the most reliable predictors and cuts down on the effect of random chance.
 
-Sample normalization can also influence these results. If gene expression data are not properly normalized, technical variation or batch effects may drive gene selection and inflate MSEs, leading to less reliable and less reproducible results. Proper normalization ensures that the observed associations and predictive performance reflect true biological signals rather than artifacts of data processing.
+Outliers in both plots can be caused by the chance of unusual data splits, influential samples, or the presence of outliers in the original data. These can then intern affect the model selection and then the estimates generated for the model, especially when the number of simulations is low. Increasing the number of simulations helps to reduce the impact of such outliers as we are averaging over more random splits.Sample normalization can also influence these results. If gene expression data are not properly normalized, technical variation or batch effects may drive gene selection and inflate MSEs, leading to less reliable and less reproducible results. Proper normalization ensures that the observed associations and predictive performance reflect true biological signals rather than artifacts of data processing. However, as discussed in question 1, this data came pre-normalized and the proper way to perform multiple linear regression with cross validation is to first split data into folds and then perform normalization so that the model is blind to the entire set of data. I'd expect if this was done first, the model would perform slightly worse as it would be blind to the variations not seen during training.
