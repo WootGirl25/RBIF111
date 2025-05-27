@@ -13,7 +13,7 @@ save(pheno, file = "GSE10072pData.Rda")
 boxplot(eData)
 #medians and IQRs all similar - normalization confirmed
 
-#filter pheno to current smoker and never smoker
+#filter pheno to disease status (tumor/non tumor) and variable (current smoker and never smoker)
 smk_and_nonsk <- pheno$`Cigarette Smoking Status:ch1`=="Never Smoked" | pheno$`Cigarette Smoking Status:ch1`=="Current Smoker"
 pheno_sns <- pheno[smk_and_nonsk,]
 eData_sns <- eData[,smk_and_nonsk]

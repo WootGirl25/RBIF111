@@ -1,0 +1,153 @@
+---
+title: Week 8 Homework
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: 
+  html_notebook:
+    number_sections: true
+---
+
+### Download data, check normalization.
+
+```{r eval=FALSE, echo=TRUE}
+library(GEOquery)
+geodata <- getGEO("GSE10072", GSEMatrix = TRUE)
+eset <- geodata[[1]]
+eData <- exprs(eset)
+pheno <- pData(eset)
+
+save(eData, file = "GSE10072eData.Rda")
+save(pheno, file = "GSE10072pData.Rda")
+```
+
+```{r}
+#boxplot to determine if expression data is normalized
+boxplot(eData, main= "Boxplot of expression levels across samples", xlab="Samples") #is there a way to remove sample names?
+#medians and IQRs all similar - normalization confirmed
+```
+## Q1.
+### ""
+
+Partition data to disease outcome - Tumor / Normal\
+Categorical variable - Smoker / Never Smoker\
+```{r}
+#Partition data: disease status (tumor/non tumor) and variable (current smoker and never smoker only [leave out former smoker])
+#fix
+smk_and_nonsk <- pheno$source_name_ch1=="Adenocarcinoma of the Lung" & (pheno$`Cigarette Smoking Status:ch1`=="Never Smoked" | pheno$`Cigarette Smoking Status:ch1`=="Current Smoker")
+pheno_sns <- pheno[smk_and_nonsk,]
+eData_sns <- eData[,smk_and_nonsk]
+```
+
+Categorical variable is smoking status = Current / Never\
+Continuous variable is gene expression use eData (table of expression data genes are rows, samples are columns)
+```{r warning=FALSE}
+#logistic regression - change smoking status to factor with two levels.
+status <- as.factor(pheno_sns$`Cigarette Smoking Status:ch1`)
+
+#initialize variables to store p-values and gene names
+pvals <- numeric()
+gene_names <- rownames(eData_sns)
+
+#loop through every gene, run glm(status~gene), save pvalue
+for (i in 1:nrow(eData_sns)){
+  gene.i <- eData_sns[i,] #select i-th row all samples
+  log.model <- glm(status~gene.i, family = binomial)
+  #save pvalue (2nd row is gene variable)
+  pvals[i] <- summary(log.model)$coefficients[2,"Pr(>|z|)"]
+}
+
+#create df to sort & plot
+status.pvals <- data.frame(gene= gene_names, pval= pvals)
+status.pvals.sorted <- status.pvals[order(status.pvals$pval),]
+#print 5 most significant
+status.pvals.sorted[1:5,]
+
+#histogram of pvals
+hist(status.pvals$pval)
+```
+
+### Leave-n-out \
+**Normalized Data**
+
+```{r}
+# I originally had this a loop but after performing on unnormalized data also, I was creating too many variables/objects to keep track of. Converted to a function.
+
+leave_n_out_sampling <- function(exprs_data, status, gene_names, n.reps = 100, seed = 123) {
+  set.seed(seed) # for reproducibility
+  
+  n.genes <- nrow(exprs_data) 
+  n.samples <- ncol(exprs_data)
+  
+  # Store mean and variance of p-values for each gene
+  pval_means <- numeric(n.genes)
+  pval_vars <- numeric(n.genes)
+  
+  for (i in 1:n.genes) {
+    gene.i <- exprs_data[i,]
+    pvals_cv <- replicate(n.reps, {
+      leave_out <- sample(1:n.samples, 1)
+      gene_train <- gene.i[-leave_out]
+      status_train <- status[-leave_out]
+      log.model <- glm(status_train ~ gene_train, family = binomial)
+      summary(log.model)$coefficients[2, "Pr(>|z|)"]
+    })
+    pval_means[i] <- mean(pvals_cv, na.rm=TRUE)
+    pval_vars[i] <- var(pvals_cv, na.rm=TRUE)
+  }
+  
+  # Create data frame for results
+  results_df <- data.frame(
+    gene = gene_names,
+    mean_pval = pval_means,
+    var_pval = pval_vars
+  )
+  
+  return(results_df)
+}
+```
+
+```{r}
+#Function call on normalized data (lets see how long it takes to run)
+system.time({
+  smpl.pvals.norm <- leave_n_out_sampling(eData_sns, status, gene_names)
+})
+
+save(smpl.pvals.norm, file = "status_resampling_norm.Rda")
+```
+
+```{r}
+#sort df by most significant p-value, print top 5.
+smpl.pvals.norm[order(smpl.pvals.norm$mean_pval), ][1:5,]
+```
+
+**Describe**
+
+---
+Data was previously normalized - to artificially "de-normalize" add a constant value to eData. This does not account for batch effects - peform second "de-normalization" where constant is added to first half (to simulate batch effects).\
+
+**"De-normalize" #1: Shift scale by adding constant to all samples**\
+**"De-normalize" #2: Mimic batch effects by adding constant to 1/2 of samples**\
+```{r}
+#all samples
+eData_sns_denorm1 <- eData_sns + 5 
+#First half of samples
+eData_sns_denorm2 <- eData_sns
+eData_sns_denorm2[, 1:floor(ncol(eData_sns)/2)] <- eData_sns_denorm2[, 1:floor(ncol(eData_sns)/2)] + 5 
+
+#plot to see differences with original data
+oldpar <- par(mfrow = c(1, 3))
+boxplot(eData_sns, main="normalized")
+boxplot(eData_sns_denorm1, main="denorm with constant")
+boxplot(eData_sns_denorm2, main="denorm constatnt to half")
+par(oldpar)
+```
+
+```{r warning=FALSE}
+# Repeat sampling for de-normalized data
+smpl.pvals.denorm1 <- leave_n_out_sampling(eData_sns_denorm1, status, gene_names)
+save(smpl.pvals.denorm1, file = "status_resampling_denorm1.Rda")
+
+smpl.pvals.denorm2 <- leave_n_out_sampling(eData_sns_denorm2, status, gene_names)
+save(smpl.pvals.denorm2, file = "status_resampling_denorm2.Rda")
+```
+
