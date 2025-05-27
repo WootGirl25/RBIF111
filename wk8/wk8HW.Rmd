@@ -26,7 +26,6 @@ boxplot(eData, main= "Boxplot of expression levels across samples", xlab="Sample
 #medians and IQRs all similar - normalization confirmed
 ```
 ## Q1.
-### ""
 
 Partition data to disease outcome - Tumor / Normal\
 Categorical variable - Smoker / Never Smoker\
@@ -66,11 +65,16 @@ status.pvals.sorted[1:5,]
 hist(status.pvals$pval)
 ```
 
+**Describe**\
+In this initial analysis I performed logistic regression for each gene to assess its association with smoking status (Current vs. Never Smoker), using normalized gene expression data from arrays. The top 5 genes sorted by lowest p-value all show strong statistical associations with smoking status, and based on this analysis we can accept the null hypothesis suggesting that expression levels of these genes differ significantly between current and never smokers.
+Looking at the histogram of p-values from this initial logistic regression analysis, I can see a strong concentration of low p-values near zero, with the frequency gradually decreasing as the p-values approached one. This pattern suggests that many genes show statistically significant associations with smoking status, which is a promising indication of real biological signal. If there were no true associations, I would expect a more uniform distribution of p-values. However, I also recognize that this skew could be influenced by confounding factors and this model assumes that each sample contributes equally and independently, and that no single sample has excessive outliers or is skewing the results. 
+
+
 ### Leave-n-out \
 **Normalized Data**
 
 ```{r}
-# I originally had this a loop but after performing on unnormalized data also, I was creating too many variables/objects to keep track of. Converted to a function.
+# I originally had this a loop but after performing on un-normalized data also, I was creating too many variables/objects to keep track of. Converted to a function.
 
 leave_n_out_sampling <- function(exprs_data, status, gene_names, n.reps = 100, seed = 123) {
   set.seed(seed) # for reproducibility
@@ -120,7 +124,19 @@ save(smpl.pvals.norm, file = "status_resampling_norm.Rda")
 smpl.pvals.norm[order(smpl.pvals.norm$mean_pval), ][1:5,]
 ```
 
-**Describe**
+**Describe**\
+The leave-n-out resampling is assessing the 
+You then applied a leave-one-out resampling strategy to assess the stability of these associations.
+ Interpretation:
+The same top 5 genes appear, with slightly higher mean p-values due to variability introduced by resampling.
+Low variance in p-values across iterations suggests these associations are robust and not driven by outliers.
+This strengthens confidence in the initial findings.
+Aspect	Without Resampling	With Resampling (Normalized)
+Purpose	Identify significant genes	Assess stability of significance
+Top Genes	219787_s_at, 203560_at, etc.	Same genes
+P-values	Slightly lower	Slightly higher (expected)
+Variability	Not assessed	Very low (good stability)
+Confidence in Results	Moderate	High
 
 ---
 Data was previously normalized - to artificially "de-normalize" add a constant value to eData. This does not account for batch effects - peform second "de-normalization" where constant is added to first half (to simulate batch effects).\
@@ -151,3 +167,117 @@ smpl.pvals.denorm2 <- leave_n_out_sampling(eData_sns_denorm2, status, gene_names
 save(smpl.pvals.denorm2, file = "status_resampling_denorm2.Rda")
 ```
 
+```{r}
+#######Comparisons of norm/denorm pvalues#######
+# Show top 5 genes by mean p-value of each resampling df
+print("Top 5 genes sorted by lowest mean p-value of:\n")
+print("Normalized leave-n-out resampling:\n")
+smpl.pvals.norm[order(smpl.pvals.norm$mean_pval), ][1:5,]
+print("Synthetic de-normalized (+5 to all samples) leave-n-out resampling:\n")
+smpl.pvals.denorm1[order(smpl.pvals.denorm1$mean_pval), ][1:5,]
+print("Synthetic de-normalized (+5 to half of samples) leave-n-out resampling:\n")
+smpl.pvals.denorm2[order(smpl.pvals.denorm2$mean_pval), ][1:5,]
+
+```
+
+```{r}
+#Histogram
+oldpar <- par(mfrow = c(3, 2))
+hist(smpl.pvals.norm$mean_pval, breaks = 50, col = "blue", 
+     main = "Normalized Mean p-val", xlab = "mean pval/gene")
+hist(smpl.pvals.norm$var_pval, breaks = 50, col = "blue", 
+     main = "Normalized p-val Variance", xlab = "p-val var/gene")
+hist(smpl.pvals.denorm1$mean_pval, breaks = 50, col = "red", 
+     main = "De-normalized (whole) Mean p-val", xlab = "Mean pval/gene")
+hist(smpl.pvals.denorm1$var_pval, breaks = 50, col = "red", 
+     main = "De-normalized (whole) p-val Variance", xlab = "p-val var/gene")
+hist(smpl.pvals.denorm2$mean_pval, breaks = 50, col = "green", 
+     main = "De-normalized (half) Mean p-val", xlab = "Mean pval/gene")
+hist(smpl.pvals.denorm2$var_pval, breaks = 50, col = "green", 
+     main = "De-normalized (half) p-val Variance", xlab = "p-val var/gene")
+par(oldpar)
+
+#boxplots
+oldpar <- par(mfrow = c(1, 2))
+boxplot(smpl.pvals.norm$mean_pval, smpl.pvals.denorm1$mean_pval, smpl.pvals.denorm2$mean_pval, 
+        main = "mean p-vals", col=c("blue", "red", "green"))
+boxplot(smpl.pvals.norm$var_pval, smpl.pvals.denorm1$var_pval, smpl.pvals.denorm2$var_pval,
+        main = "var p-vals", col=c("blue", "red", "green"))
+par(oldpar)
+
+#plot means and variances between norm/denorm data
+oldpar <- par(mfrow = c(2, 2))
+plot(
+  smpl.pvals.norm$mean_pval, smpl.pvals.denorm1$mean_pval,
+  xlab = "Mean p-values(normalized)",
+  ylab = "Mean p-values(de-normalized)",
+  pch = 16, col = "blue"
+)
+abline(0, 1, col = "red", lwd = 2) # diagonal line for reference
+
+plot(
+  smpl.pvals.norm$var_pval, smpl.pvals.denorm1$var_pval,
+  xlab = "Variance of p-values(Normalized)",
+  ylab = "Variance of p-value (de-normalized)",
+  pch = 16, col = "blue"
+)
+abline(0, 1, col = "red", lwd = 2)
+plot(
+  smpl.pvals.norm$mean_pval, smpl.pvals.denorm2$mean_pval,
+  xlab = "Mean p-values(normalized)",
+  ylab = "Mean p-values(half de-normalized)",
+  pch = 16, col = "blue"
+)
+abline(0, 1, col = "red", lwd = 2) # diagonal line for reference
+
+plot(
+  smpl.pvals.norm$var_pval, smpl.pvals.denorm2$var_pval,
+  xlab = "Variance of p-values(Normalized)",
+  ylab = "Variance of p-value (half de-normalized)",
+  pch = 16, col = "blue"
+)
+abline(0, 1, col = "red", lwd = 2)
+par(oldpar)
+```
+**DISCUSS**\
+Denorl (+5 to all) Adding a constant to all samples does not affect the relative differences between samples.
+This is expected: logistic regression is scale-invariant to additive constants when the same shift is applied to all samples.
+✅ Conclusion: Your model is robust to uniform shifts in expression values.
+
+Denorm (batch ) This simulates a batch effect—a systematic difference between groups unrelated to biology.
+The top genes from the normalized data are no longer significant, and new genes appear with weaker associations.
+This shows how batch effects can obscure true biological signals and introduce noise.
+⚠️ Conclusion: Batch effects can severely distort results, highlighting the importance of proper normalization and batch correction.
+
+## Qn. 2
+### ""
+
+From the link provided, I chose the Primary Biliary Cirrhosis data set. Once I imported the data set with table(), the columns of interest were as follows:\
+col V2 = number of days between registration and the earlier of death, transplantation, or study analysis time \
+col V3= status: coded as 0=censored, 1=censored due to liver tx, 2=death\
+col V6= sex: 0=male, 1=female\
+
+```{r}
+survivaldata <- read.table("~/Documents/RBIF111/wk8/survivaldata_ Cirrhosis.txt", row.names=1, quote="\"", comment.char="")
+
+#Change column names for convenience
+colnames(survivaldata)[c(1,2,5)] <- c("days","status","sex");survivaldata[1:3,1:5]
+
+library(survival)
+days <- survivaldata$days
+sex <- survivaldata$sex
+d2d.ind <- as.numeric(!is.na(days) & !is.na(sex) & survivaldata$status==2) #days to death where days not na, and status is death
+d2d.surv <- Surv(days, d2d.ind)
+plot(survfit(d2d.surv~sex, data = survivaldata),
+     col = c(2,4), xlab="Survival (Days)",
+     ylab="1-p(death)")
+legend(100,0.8, legend=c('M','F'), lwd=1, col=c('blue','red'))
+coxph(Surv(days, d2d.ind)~sex, data=survivaldata)
+# P >0.05 (barely) the likelihood of death does not depend on sex in this data set.
+```
+
+**DISCUSS**\
+The status column in this data set is interesting, it is either censored - meaning patient was still alive at the end of the study, censored due to transplant - the patient received a liver transplant so the event of death is unknown, or death. Based on this column, and that there is no type of remission/cured column, this survival data is considering death to be the event. In this comparison we are looking at whether sex has a significant effect on the survival time of patients with Primary Biliary Cirrhosis. First I partition the columns of interest survival days and patient sex, and save them as objects. Then we use logical operations to find the row/patient indices where both the row value for days and sex is not missing, and the status is death(2). This results in a logical vector of True/False. When we apply this vector to days within the Surv() function it creates a survival object, only selecting the indices that correspond to True in the d2d.ind vector. the `survfit()` function fits a Kaplan-Meier survival curve to our days-to-death event, stratified by patient sex. We include the entire data set in this function and not just the uncensored data because although an event did not occur in the censored data, it is telling us at each time point the probability of the event occurring over all patients. We wrap this in the `plot()` function which allows us to visualize survival based on sex. This plot shows....
+
+`coxph()` fits a Cox proportional hazards regression model to the `d2d.surv` survival object by patient sex, and is estimating the effect that sex has on the hazzard/risk of death in Primary Biliary Cirrhosis. The results we get are Hazard ratio (HR) = , Confidence intervals = , p-values = . This is saying that if the results were significant we could expect ....
+However, our p-value is (barely) greater than 0.05, which means we would accept the null hypothesis that patient sex does not have an effect on survival time in this data set. 
