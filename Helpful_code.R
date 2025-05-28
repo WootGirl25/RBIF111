@@ -25,3 +25,6 @@ data(ALL)
 #where smpls is a list of sample names of interest, results in df that selects ERBB2 gene 
 #exprsn levels for samples in the vector.
 protData[protData$X == "ERBB2", smpls]
+
+# Rename columns by column index (e.g., columns 2 and 4)
+colnames(df)[c(2, 4)] <- c("new_name1", "new_name2")

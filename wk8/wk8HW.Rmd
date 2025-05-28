@@ -7,7 +7,8 @@ output:
     number_sections: true
 ---
 
-### Download data, check normalization.
+
+**--Download data, check normalization--**
 
 ```{r eval=FALSE, echo=TRUE}
 library(GEOquery)
@@ -22,16 +23,17 @@ save(pheno, file = "GSE10072pData.Rda")
 
 ```{r}
 #boxplot to determine if expression data is normalized
-boxplot(eData, main= "Boxplot of expression levels across samples", xlab="Samples") #is there a way to remove sample names?
+boxplot(eData, main= "Boxplot of expression levels across samples", xlab="Samples") 
 #medians and IQRs all similar - normalization confirmed
 ```
-## Q1.
+The Boxplot of expression data across samples shows that the medians and IQRs fo expression values are very similar. This indicates that the data is well normalized and that there are no major differences in variation between samples.
+
+# Question 1.
 
 Partition data to disease outcome - Tumor / Normal\
 Categorical variable - Smoker / Never Smoker\
 ```{r}
 #Partition data: disease status (tumor/non tumor) and variable (current smoker and never smoker only [leave out former smoker])
-#fix
 smk_and_nonsk <- pheno$source_name_ch1=="Adenocarcinoma of the Lung" & (pheno$`Cigarette Smoking Status:ch1`=="Never Smoked" | pheno$`Cigarette Smoking Status:ch1`=="Current Smoker")
 pheno_sns <- pheno[smk_and_nonsk,]
 eData_sns <- eData[,smk_and_nonsk]
@@ -39,7 +41,7 @@ eData_sns <- eData[,smk_and_nonsk]
 
 Categorical variable is smoking status = Current / Never\
 Continuous variable is gene expression use eData (table of expression data genes are rows, samples are columns)
-```{r warning=FALSE}
+```{r warning=FALSE, echo=TRUE}
 #logistic regression - change smoking status to factor with two levels.
 status <- as.factor(pheno_sns$`Cigarette Smoking Status:ch1`)
 
@@ -67,10 +69,12 @@ hist(status.pvals$pval)
 
 **Describe**\
 In this initial analysis I performed logistic regression for each gene to assess its association with smoking status (Current vs. Never Smoker), using normalized gene expression data from arrays. The top 5 genes sorted by lowest p-value all show strong statistical associations with smoking status, and based on this analysis we can accept the null hypothesis suggesting that expression levels of these genes differ significantly between current and never smokers.
-Looking at the histogram of p-values from this initial logistic regression analysis, I can see a strong concentration of low p-values near zero, with the frequency gradually decreasing as the p-values approached one. This pattern suggests that many genes show statistically significant associations with smoking status, which is a promising indication of real biological signal. If there were no true associations, I would expect a more uniform distribution of p-values. However, I also recognize that this skew could be influenced by confounding factors and this model assumes that each sample contributes equally and independently, and that no single sample has excessive outliers or is skewing the results. 
+Looking at the histogram of p-values from this initial logistic regression analysis, I can see a strong concentration of low p-values near zero, with the frequency gradually decreasing as the p-values approached one. This pattern suggests that many genes show statistically significant associations with smoking status, which is a promising indication of real biological signal. If there were no true associations, I would expect a more uniform distribution of p-values. However, I also recognize that this skew could be influenced by confounding factors and this model assumes that each sample contributes equally and independently, and that no single sample has excessive outliers or is skewing the results. \
 
+---
 
-### Leave-n-out \
+**Leave-n-out:** \
+
 **Normalized Data**
 
 ```{r}
@@ -110,7 +114,7 @@ leave_n_out_sampling <- function(exprs_data, status, gene_names, n.reps = 100, s
 }
 ```
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 #Function call on normalized data (lets see how long it takes to run)
 system.time({
   smpl.pvals.norm <- leave_n_out_sampling(eData_sns, status, gene_names)
@@ -125,21 +129,12 @@ smpl.pvals.norm[order(smpl.pvals.norm$mean_pval), ][1:5,]
 ```
 
 **Describe**\
-The leave-n-out resampling is assessing the 
-You then applied a leave-one-out resampling strategy to assess the stability of these associations.
- Interpretation:
-The same top 5 genes appear, with slightly higher mean p-values due to variability introduced by resampling.
-Low variance in p-values across iterations suggests these associations are robust and not driven by outliers.
-This strengthens confidence in the initial findings.
-Aspect	Without Resampling	With Resampling (Normalized)
-Purpose	Identify significant genes	Assess stability of significance
-Top Genes	219787_s_at, 203560_at, etc.	Same genes
-P-values	Slightly lower	Slightly higher (expected)
-Variability	Not assessed	Very low (good stability)
-Confidence in Results	Moderate	High
+The leave-n-out resampling is assessing the stability of the logistic regression model and the association between gene expression and smoking status. The same top five genes appear, though with slightly higher mean p-values, suggesting that these associations are consistent across different subsets of the data and are not just artifacts of the specific sample in the first analysis. The low variance in p-values across iterations further supports that these gene expression differences are reliable and not heavily influenced by outliers.
+
+By leaving out individual samples in replicates and recalculating p-values, this method accounts for the potential influence of any single sample disproportionately skewing the results. The fact that the mean p-values remain similar while the variance is minimal strengthens the reliability of these findings, reinforcing that these gene associations with smoking status are stable across resampling iterations.
 
 ---
-Data was previously normalized - to artificially "de-normalize" add a constant value to eData. This does not account for batch effects - peform second "de-normalization" where constant is added to first half (to simulate batch effects).\
+Data was previously normalized - to artificially "de-normalize" add a constant value to eData. This does not account for batch effects - perform second "de-normalization" where constant is added to first half (to simulate batch effects).\
 
 **"De-normalize" #1: Shift scale by adding constant to all samples**\
 **"De-normalize" #2: Mimic batch effects by adding constant to 1/2 of samples**\
@@ -158,7 +153,7 @@ boxplot(eData_sns_denorm2, main="denorm constatnt to half")
 par(oldpar)
 ```
 
-```{r warning=FALSE}
+```{r eval=FALSE, warning=FALSE, echo=TRUE}
 # Repeat sampling for de-normalized data
 smpl.pvals.denorm1 <- leave_n_out_sampling(eData_sns_denorm1, status, gene_names)
 save(smpl.pvals.denorm1, file = "status_resampling_denorm1.Rda")
@@ -170,12 +165,11 @@ save(smpl.pvals.denorm2, file = "status_resampling_denorm2.Rda")
 ```{r}
 #######Comparisons of norm/denorm pvalues#######
 # Show top 5 genes by mean p-value of each resampling df
-print("Top 5 genes sorted by lowest mean p-value of:\n")
-print("Normalized leave-n-out resampling:\n")
+print("Normalized leave-n-out resampling:")
 smpl.pvals.norm[order(smpl.pvals.norm$mean_pval), ][1:5,]
-print("Synthetic de-normalized (+5 to all samples) leave-n-out resampling:\n")
+print("Synthetic de-normalized (+5 to all samples) leave-n-out resampling:")
 smpl.pvals.denorm1[order(smpl.pvals.denorm1$mean_pval), ][1:5,]
-print("Synthetic de-normalized (+5 to half of samples) leave-n-out resampling:\n")
+print("Synthetic de-normalized (+5 to half of samples) leave-n-out resampling:")
 smpl.pvals.denorm2[order(smpl.pvals.denorm2$mean_pval), ][1:5,]
 
 ```
@@ -199,10 +193,20 @@ par(oldpar)
 
 #boxplots
 oldpar <- par(mfrow = c(1, 2))
-boxplot(smpl.pvals.norm$mean_pval, smpl.pvals.denorm1$mean_pval, smpl.pvals.denorm2$mean_pval, 
-        main = "mean p-vals", col=c("blue", "red", "green"))
-boxplot(smpl.pvals.norm$var_pval, smpl.pvals.denorm1$var_pval, smpl.pvals.denorm2$var_pval,
-        main = "var p-vals", col=c("blue", "red", "green"))
+boxplot(
+  smpl.pvals.norm$mean_pval, 
+  smpl.pvals.denorm1$mean_pval, 
+  smpl.pvals.denorm2$mean_pval, 
+  main = "mean p-vals", 
+  col = c("blue", "red", "green"),
+  names = c("Normalized", "De-norm (all)", "De-norm (half)"), cex.axis = 0.6)
+boxplot(
+  smpl.pvals.norm$var_pval, 
+  smpl.pvals.denorm1$var_pval, 
+  smpl.pvals.denorm2$var_pval,
+  main = "var p-vals", 
+  col = c("blue", "red", "green"),
+  names = c("Normalized", "De-norm (all)", "De-norm (half)"), cex.axis = 0.6)
 par(oldpar)
 
 #plot means and variances between norm/denorm data
@@ -240,19 +244,13 @@ abline(0, 1, col = "red", lwd = 2)
 par(oldpar)
 ```
 **DISCUSS**\
-Denorl (+5 to all) Adding a constant to all samples does not affect the relative differences between samples.
-This is expected: logistic regression is scale-invariant to additive constants when the same shift is applied to all samples.
-✅ Conclusion: Your model is robust to uniform shifts in expression values.
+Adding a constant to all samples does not change the differences between them, which makes sense because logistic regression isn’t affected by simply shifting values. This is because logistic regression models the link between gene expression and smoking status and depends on the relative differences/odds ratio, therefore adding a constant to all predictor values does not impact the model fit or the p-value. This is shown in the histograms, boxplots, and scatterplots as the distributions and relationships of mean and variance of p-values for normalized and de-normalized (all samples) data look identical, with points falling right on the diagonal in the scatterplots. This confirms that basic adjustments like this don’t interfere with detecting associations.
 
-Denorm (batch ) This simulates a batch effect—a systematic difference between groups unrelated to biology.
-The top genes from the normalized data are no longer significant, and new genes appear with weaker associations.
-This shows how batch effects can obscure true biological signals and introduce noise.
-⚠️ Conclusion: Batch effects can severely distort results, highlighting the importance of proper normalization and batch correction.
+However, when introducing batch effects by shifting only half the samples, we can see a clear change where genes that were previously significant no longer are, and new genes appear with weaker associations. The histograms and boxplots show that mean p-values shift dramatically higher and variances increase, which indicates a loss of significant associations and greater instability in the results. The scatterplots also illustrate this, with points deviating far from the diagonal, reflecting the breakdown of correspondence between normalized and batch-effect data. This highlights how batch effects can mask real biological signals and introduce misleading patterns. Even though this was a dramatic example, it shows the importance of correcting for technical variance to ensure results truly reflect biological differences rather than artifacts from data processing.
 
-## Qn. 2
-### ""
+# Question 2.
 
-From the link provided, I chose the Primary Biliary Cirrhosis data set. Once I imported the data set with table(), the columns of interest were as follows:\
+From the link provided, I chose the Primary Biliary Cirrhosis data set. Once I imported the data set with read.table(), the columns of interest were as follows:\
 col V2 = number of days between registration and the earlier of death, transplantation, or study analysis time \
 col V3= status: coded as 0=censored, 1=censored due to liver tx, 2=death\
 col V6= sex: 0=male, 1=female\
@@ -269,15 +267,20 @@ sex <- survivaldata$sex
 d2d.ind <- as.numeric(!is.na(days) & !is.na(sex) & survivaldata$status==2) #days to death where days not na, and status is death
 d2d.surv <- Surv(days, d2d.ind)
 plot(survfit(d2d.surv~sex, data = survivaldata),
-     col = c(2,4), xlab="Survival (Days)",
+     col = c("red","blue"), xlab="Survival (Days)",
      ylab="1-p(death)")
-legend(100,0.8, legend=c('M','F'), lwd=1, col=c('blue','red'))
+legend(100,0.8, legend=c('M','F'), lwd=1, col=c('red','blue'))
 coxph(Surv(days, d2d.ind)~sex, data=survivaldata)
-# P >0.05 (barely) the likelihood of death does not depend on sex in this data set.
 ```
 
 **DISCUSS**\
-The status column in this data set is interesting, it is either censored - meaning patient was still alive at the end of the study, censored due to transplant - the patient received a liver transplant so the event of death is unknown, or death. Based on this column, and that there is no type of remission/cured column, this survival data is considering death to be the event. In this comparison we are looking at whether sex has a significant effect on the survival time of patients with Primary Biliary Cirrhosis. First I partition the columns of interest survival days and patient sex, and save them as objects. Then we use logical operations to find the row/patient indices where both the row value for days and sex is not missing, and the status is death(2). This results in a logical vector of True/False. When we apply this vector to days within the Surv() function it creates a survival object, only selecting the indices that correspond to True in the d2d.ind vector. the `survfit()` function fits a Kaplan-Meier survival curve to our days-to-death event, stratified by patient sex. We include the entire data set in this function and not just the uncensored data because although an event did not occur in the censored data, it is telling us at each time point the probability of the event occurring over all patients. We wrap this in the `plot()` function which allows us to visualize survival based on sex. This plot shows....
+ 
+The status column in this data set is interesting: it is either censored (patient was still alive at the end of the study), censored due to transplant (the patient received a liver transplant so the event of death is unknown), or death. Based on this column, and that there is no remission/cured column, this survival data is considering death to be the event. In this comparison, we are looking at whether sex has a significant effect on the survival time of patients with Primary Biliary Cirrhosis.
 
-`coxph()` fits a Cox proportional hazards regression model to the `d2d.surv` survival object by patient sex, and is estimating the effect that sex has on the hazzard/risk of death in Primary Biliary Cirrhosis. The results we get are Hazard ratio (HR) = , Confidence intervals = , p-values = . This is saying that if the results were significant we could expect ....
-However, our p-value is (barely) greater than 0.05, which means we would accept the null hypothesis that patient sex does not have an effect on survival time in this data set. 
+First, I partitioned the columns of interest, survival days and patient sex, and saved them as objects. Logical operations were used to find the row/patient indices where both days and sex are not missing, and the status is death (2). This results in a logical vector indicating which patients experienced the event of interest. Applying this vector within the `Surv()` function creates a survival object for the analysis.
+
+The `survfit()` function fits a Kaplan-Meier survival curve to our days-to-death event, stratified by patient sex. The plot shows that females (blue line) have better survival probabilities over time compared to males (red line), as the curve for females remains higher throughout the follow-up period. This suggests that females tend to survive longer than males in this cohort.
+
+The `coxph()` function fits a Cox proportional hazards regression model to the survival object by patient sex, estimating the effect of sex on the hazard/risk of death. In this analysis, females are coded as 1 and males as 0 in the sex variable. This means that the model estimates the hazard of death for females relative to males. The model’s coefficient for sex describes how the risk changes for this comparison and the results show a negative coefficient for sex (-0.4839), and a hazard ratio less than 1 (0.6164), indicating that females have about 62% of the hazard of death occuring compared to males. The p-value for the sex variable is 0.0407, which is below the normal 0.05 threshold, suggesting that the effect of sex on survival is statistically significant. However, the likelihood ratio test for the overall model gives a p-value of 0.05214, just above the cutoff, indicating borderline significance for the model as a whole.
+
+In summary, both the Kaplan-Meier plot and the Cox model suggest that females have a survival advantage over males in this data set, although the statistical evidence is not strong. Repeating this analysis with a larger sample size may help to clarify if the relationship is truely significant. 
