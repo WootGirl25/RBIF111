@@ -21,12 +21,208 @@ boxplot(counts_data, ylim=c(0,4000)) #var vastly different
 
 #Question 2
 ```{r}
+## FILTER GENES BY VARIANCE - NEED TO SELECT TOP 100, 1000 MOST VARIABLE GENES
+# Calculate variance for each gene
+gene_vars <- apply(counts_data, 1, var)
+
+# Get top 100 and top 1000 most variable genes
+top100_genes <- names(sort(gene_vars, decreasing = TRUE))[1:100]
+top1000_genes <- names(sort(gene_vars, decreasing = TRUE))[1:1000]
+
+counts_top100 <- counts_data[top100_genes, ]
+counts_top1000 <- counts_data[top1000_genes, ]
+
+##CALCULATE PCA ON RAW COUNTS
+# transpose: samples as rows, genes as columns
+pca_raw_100 <- prcomp(t(counts_top100), scale. = TRUE)
+pca_raw_1000 <- prcomp(t(counts_top1000), scale. = TRUE)
+
+#plot PC's by variance explained
+oldpar <- par(mfrow = c(2,2))
+#top 100
+pca_raw_100.var <- pca_raw_100$sdev^2
+pca.var.per <- round(pca_raw_100.var/sum(pca_raw_100.var)*100,1)
+barplot(pca.var.per, xlab="PCA", ylab="% var", main="all: %var/PCA_top1000") #all samples
+#samples contributing >5% 1-5
+barplot(pca.var.per[1:6], xlab="PCA", ylab="% var", main="~>5%: %var/PCA_top100")
+#top 1000
+pca_raw_1000.var <- pca_raw_1000$sdev^2
+pca.var.per <- round(pca_raw_1000.var/sum(pca_raw_1000.var)*100,1)
+barplot(pca.var.per, xlab="PCA", ylab="% var", main="all: %var/PCA_top1000") #all samples
+#samples contributing >5% 1-5
+barplot(pca.var.per[1:6], xlab="PCA", ylab="% var", main="~>5% %var/PCA_top1000")
+par(oldpar)
+```
+
+```{r}
+## CALCULATE EXPLAINED VARIANCE 
+# Function to get number of PCs explaining at least a threshold of variance
+explained_pcs <- function(pca, threshold) {
+  # calc the variance explained by each principal component (PC)
+  var_explained <- (pca$sdev^2) / sum(pca$sdev^2)
+  total <- 0
+  num_pcs <- 0
+  #add up explained var for each pc one by one
+  for (v in var_explained) {
+    total <- total + v
+    num_pcs <- num_pcs + 1
+    #once we reach 50/75% explained, break and return the number of pc's that contribute
+    #since the PCs are listed in order, numbers returned will align with top pcs
+    if (total >= threshold) { 
+      break
+    }
+  }
+  return(num_pcs)
+}
 
 ```
 
+```{r}
+#Call function for top 100, 1000, 50% explained, 75% explained
+#call explained_pcs on top_100 and top_100, with 50 and 75% explained variance
+pc100.50perc <- explained_pcs(pca_raw_100, 0.5)
+pc100.75perc <- explained_pcs(pca_raw_100, 0.75)
+pc1000.50perc <- explained_pcs(pca_raw_1000, 0.5)
+pc1000.75perc <- explained_pcs(pca_raw_1000, 0.75)
 
+cat("Top 100 genes: number of PCs for 50% variance:", pc100.50perc, "; 75% variance:", pc100.75perc, "\n")
+cat("Top 1000 genes: number of PCs for 50% variance:", pc1000.50perc, "; 75% variance:", pc1000.75perc, "\n")
+```
+**Describe how much this number of dimensions explaining most of the variance in the data changes for different number of genes considered.**\
+
+
+*3D Scatterplots*
+```{r}
+####  3D Scatterplot
+# color by treatment (DMSO, LOX, MPB)
+library(scatterplot3d)
+#sample names in counts_data and pheno are different formats = "Sample_LI.01" vs "Sample_LI-01"
+# Fix sample name formatting for matching - samples not in the same order in data/pheno
+fixed_names <- gsub("\\.", "-", colnames(counts_data))
+#vector of treatment type that matches order of counts_data
+annotate <- pheno[match(fixed_names, pheno$title), "treatment:ch1"]
+
+# convert annotation to a factor and assign color
+annotate_factor <- as.factor(annotate)
+colors <- as.numeric(annotate_factor)
+
+#plot
+oldpar <- par(mfrow = c(2,1))
+scatterplot3d(
+  pca_raw_100$x[,1], pca_raw_100$x[,2], pca_raw_100$x[,3],
+  color = colors,
+  pch = 19,
+  main = "pca_raw_100 (by treatment group)",
+  xlab = "PC1", ylab = "PC2", zlab = "PC3"
+)
+legend(
+  "topright",
+  legend = levels(annotate_factor),
+  col = 1:length(levels(annotate_factor)),
+  pch = 19
+)
+scatterplot3d(
+  pca_raw_1000$x[,1], pca_raw_1000$x[,2], pca_raw_1000$x[,3],
+  color = colors,
+  pch = 19,
+  main = "pca_raw_1000 (by treatment group)",
+  xlab = "PC1", ylab = "PC2", zlab = "PC3"
+)
+legend(
+  "topright",
+  legend = levels(annotate_factor),
+  col = 1:length(levels(annotate_factor)),
+  pch = 19
+)
+par(oldpar)
+```
+**Describe your findings.**\
+
+
+
+*Normalize and repeat*
+```{r}
+## NORMALIZE DATA AND REPEAT
+# Simple normalization: log-transform (add pseudocount to avoid log(0))
+norm_counts <- log2(counts_data + 1)
+# Repeat steps 2-5 for normalized data
+gene_vars_norm <- apply(norm_counts, 1, var)
+top100_genes_norm <- names(sort(gene_vars_norm, decreasing = TRUE))[1:100]
+top1000_genes_norm <- names(sort(gene_vars_norm, decreasing = TRUE))[1:1000]
+norm_top100 <- norm_counts[top100_genes_norm, ]
+norm_top1000 <- norm_counts[top1000_genes_norm, ]
+
+pca_norm_100 <- prcomp(t(norm_top100), scale. = TRUE)
+pca_norm_1000 <- prcomp(t(norm_top1000), scale. = TRUE)
+
+norm.pc100.50perc <- explained_pcs(pca_norm_100, 0.5)
+norm.pc100.75perc <- explained_pcs(pca_norm_100, 0.75)
+normpc1000.50perc <- explained_pcs(pca_norm_1000, 0.5)
+norm.pc1000.75perc <- explained_pcs(pca_norm_1000, 0.75)
+
+cat("normalized top 100 genes: number of PCs for 50% variance:", norm.pc100.50perc, "; 75% variance:", norm.pc100.75perc, "\n")
+cat("normalized top 1000 genes: number of PCs for 50% variance:", normpc1000.50perc, "; 75% variance:", norm.pc1000.75perc, "\n")
+
+#plot
+oldpar <- par(mfrow = c(2,2))
+scatterplot3d(
+  pca_norm_100$x[,1], pca_norm_100$x[,2], pca_norm_100$x[,3],
+  color = colors,
+  pch = 19,
+  main = "pca_norm_100 (by treatment group)",
+  xlab = "PC1", ylab = "PC2", zlab = "PC3"
+)
+legend(
+  "topright",
+  legend = levels(annotate_factor),
+  col = 1:length(levels(annotate_factor)),
+  pch = 19
+)
+scatterplot3d(
+  pca_raw_100$x[,1], pca_raw_100$x[,2], pca_raw_100$x[,3],
+  color = colors,
+  pch = 19,
+  main = "pca_raw_100 (by treatment group)",
+  xlab = "PC1", ylab = "PC2", zlab = "PC3"
+)
+legend(
+  "topright",
+  legend = levels(annotate_factor),
+  col = 1:length(levels(annotate_factor)),
+  pch = 19
+)
+scatterplot3d(
+  pca_norm_1000$x[,1], pca_norm_1000$x[,2], pca_norm_1000$x[,3],
+  color = colors,
+  pch = 19,
+  main = "pca_norm_1000 (by treatment group)",
+  xlab = "PC1", ylab = "PC2", zlab = "PC3"
+)
+legend(
+  "topright",
+  legend = levels(annotate_factor),
+  col = 1:length(levels(annotate_factor)),
+  pch = 19
+)
+scatterplot3d(
+  pca_raw_1000$x[,1], pca_raw_1000$x[,2], pca_raw_1000$x[,3],
+  color = colors,
+  pch = 19,
+  main = "pca_raw_1000 (by treatment group)",
+  xlab = "PC1", ylab = "PC2", zlab = "PC3"
+)
+legend(
+  "topright",
+  legend = levels(annotate_factor),
+  col = 1:length(levels(annotate_factor)),
+  pch = 19
+)
+par(oldpar)
+```
+**Describe which version produces the best results and explain why.(unnorm/norm)**\
 
 #Question 3
+**Part 1- Perform hierarchical clustering with top 100 and 1000 genes with highest variance as well as all genes in the selected data set. Visually compare and describe changes in the membership in the several top level clusters for each number of the genes chosen.**
 ```{r}
 #### HC for top 100, 1000, and all genes ####
 #make list of gene sets so can loop and do all at once
@@ -48,10 +244,12 @@ for (set in names(gene_sets)) {
 }
 par(oldpar)
 ```
-Discuss:\
+**Discuss:Visually compare and describe changes in the membership in the several top level clusters for each number of the genes chosen. (Visually compare top level clusters)**\
 
+**Part 2- Repeat this analysis using several clustering metrics including spearman correlation, ward, ward.D, ward.D2, single, complete, average, mcquitty, median or centroid.**\
+Of the list provided I chose to look at ward.D2, average, and spearman correlation (using complete linkage) - I assumed picking a few was the intended goal given the "or" before the last metric.
 ```{r}
-##CHOICES: ward.D2 + Euclidean, average(UPGMA) + Euclidean, Spearman + Complete linkage
+##CHOICES: ward.D2 + Euclidean, average + Euclidean, Spearman + Complete linkage
 oldpar <- par(mfrow = c(1, 3)) 
 for (set in names(gene_sets)) {
   matrix <- gene_sets[[set]]
@@ -59,11 +257,6 @@ for (set in names(gene_sets)) {
   
   #distance= Eucilidan for complete, ward.D2 and average
   d.euc <- dist(t(matrix))
-  
-  #linkage=complete
-  # clust.ec <- hclust(d.euc, method = "complete")
-  # clust_results[[set]][["complete"]] <- clust.ec
-  # plot(clust.ec, main = paste(set, "Euclidean + complete"), xlab = "", sub = "", cex = 0.7)
   
   #linkage= ward.D2 
   clust.wardd2 <- hclust(d.euc, method = "ward.D2")
@@ -84,44 +277,48 @@ for (set in names(gene_sets)) {
 par(oldpar)
 
 ```
-Discuss:\ NOT YET WRITTEN
+**Discuss:Compare these results, describe how each clustering method works, and compare the results to PCA results obtained above.**\
 
 
 #Question 4
-```{r}
-#order genes by variance
-ordered_counts <- counts_data[order(gene_vars, decreasing = TRUE),]
-
-#find exponential slices, 256^2 is larger than number of genes, will have to cut short
-slice_sizes <- c(4)
-while (tail(slice_sizes,1) < nrow(ordered_counts)){
-  nextsize <- tail(slice_sizes,1)^2 #square the last size in the vector
-  slice_sizes <- c(slice_sizes, nextsize) #add to vector
-}
-#make length of last slice == nrow, it will make it the index of last row - then can select into groups
-slice_sizes[length(slice_sizes)] <- nrow(ordered_counts); slice_sizes #check
-#create slices (use lapply since slices are in a vector)
-data_slices <- lapply(slice_sizes, 
-                      function(size){
-                        ordered_counts[1:size,]
-                      })
-
-#perform clustering, save dendograms and histogram heights so know where to cut
-dendograms <- list()
-hist_heights <- list()
-
-for (i in 1:length(data_slices)){
-  slice <- data_slices[[i]]
-  clust <- hclust(dist(t(slice)), method = "ward.D2")
-  dendrograms[[i]] <- clust
-  hist_heights[[i]] <- hist(clust$height, breaks = 50, main= paste("Hist of merge heights- slice", i), xlab= "height")
+```{r eval=FALSE, include=FALSE}
+#previous code - commenting out and not running. - just want record.
+####################################################################
+# #order genes by variance - previously calculted variance in Qn2
+# ordered_counts <- counts_data[order(gene_vars, decreasing = TRUE),]
+# 
+# #find exponential slices, 256^2 is larger than number of genes, will have to cut short the range of the last splice to match the number of genes
+# slice_sizes <- c(4)
+# while (tail(slice_sizes,1) < nrow(ordered_counts)){
+#   nextsize <- tail(slice_sizes,1)^2 #square the last size in the vector
+#   slice_sizes <- c(slice_sizes, nextsize) #add to vector
+# }
+# #make length of last slice == nrow, it will make it the index of last row - then can select into groups
+# slice_sizes[length(slice_sizes)] <- nrow(ordered_counts); slice_sizes #check
+# 
+# #create slices (use lapply since slices are in a vector)
+# data_slices <- lapply(slice_sizes, 
+#                       function(size){
+#                         ordered_counts[1:size,]
+#                       })
+# #perform clustering, save dendograms and histogram heights so know where to cut
+# dendograms <- list()
+# hist_heights <- list()
+# 
+# for (i in 1:length(data_slices)){
+#   slice <- data_slices[[i]]
+#   clust <- hclust(dist(t(slice)), method = "ward.D2")
+#   dendrograms[[i]] <- clust
+#   hist_heights[[i]] <- hist(clust$height, breaks = 50, main= paste("Hist of merge heights- slice", i), xlab= "height")
 }
 ```
+
+*Create data slices*
 ```{r}
-#order genes by variance
+#order genes by variance - previously calculted variance in Qn2
 ordered_counts <- counts_data[order(gene_vars, decreasing = TRUE),]
 
-#find exponential slices, 256^2 is larger than number of genes, will have to cut short
+#find exponential slices, 256^2 is larger than number of genes, will have to cut short the range of the last splice to match the number of genes
 slice_sizes <- c(4)
 while (tail(slice_sizes,1) < nrow(ordered_counts)){
   nextsize <- tail(slice_sizes,1)^2 #square the last size in the vector
@@ -129,9 +326,15 @@ while (tail(slice_sizes,1) < nrow(ordered_counts)){
 }
 #make length of last slice == nrow, it will make it the index of last row - then can select into groups
 slice_sizes[length(slice_sizes)] <- nrow(ordered_counts); slice_sizes #check
-#create slices (use lapply since slices are in a vector)
-data_slices <- lapply(slice_sizes, function(size){ordered_counts[1:size,]})
 
+#create slices (use lapply since slices are in a vector)
+data_slices <- lapply(slice_sizes, function(size){ordered_counts[1:size,]}) #creates a list of each data slice (genes)
+
+
+```
+
+*Perform clustering and plot histograms to determine cut size*
+```{r}
 # 4a. Perform clustering and plot histograms (do NOT cut yet)
 dendrograms <- lapply(data_slices, function(slice) {
   hcwd2 <- hclust(dist(t(slice)), method = "ward.D2")
@@ -139,37 +342,46 @@ dendrograms <- lapply(data_slices, function(slice) {
   return(hcwd2)
 })
 
-#looks like they all drop off ~400,000 - try this as cut height
+
+```
+Looks like they all drop off at about 400,000 - will use this height as the cut size, it will be uniform for each data slice.
+
+*Cut dendrograms, combine into a matrix for counting, count the number of times individual tree leafs are identified in the same branch across all slices.*
+```{r}
 cut_height <- 400000
 cluster_list <- lapply(dendrograms, function(hcwd2) {
   cutree(hcwd2, h = cut_height)
 })
 
-# 5. Combine cluster lists into a matrix (samples x slices)
+# combine each vector in cluster lists into a matrix (samples x slices) for easier counting
 sample_names <- colnames(counts_data)
 cluster_matrix <- sapply(cluster_list, function(clusters) clusters[sample_names]) #reorder each vector in cluster_lists to match order of sample_names
+#cluster_matrix now contains samples as rows, and each column is a separate slice. the cells indicate which branch/cluster that sample was grouped into (1,2,3, or 4)### CHECK THIS - IS MY UNDERSTANDING HERE CORRECT????#####################
 
-# For each sample, count how many times it is assigned to its most common cluster
+# for each sample (patient), count how many times it is assigned to its most common cluster
 leaf_stability <- apply(cluster_matrix, 1, function(x) {
-  max(table(x))
+  max(table(x)) #for each row(patient) what is the maximum number of times it was in the same branch? Creates a contingency table and selects the maximum value.
 })
 
-# Print the stability count for each sample -leaf stability gives the most time that sample was in the same cluster across all 4 slices. if =4, means in the same cluster each time
-print(leaf_stability)
+# Print the stability count for each sample -leaf stability gives the most times that sample was in the same branch (cluster) across all 4 slices. if =4, means in the same branch each time.
+cat("Counts for each sample, showing the number of times that sample (tree leaf) appeared in the same branch across all 4 slices: \n", leaf_stability)
 ```
 
+*Find the tree with the greatest number of leaves that are similar to the rest of the trees (most common branch across slices)*
 ```{r}
-# 1. For each sample, find its most common cluster assignment across all slices
+# for each sample, find its most common cluster  across all slices
+#Repeats the previous code, but this time for each sample (row) finds the name of the cluster with the maximum value, instead of returning the highest value.
 most_common_cluster <- apply(cluster_matrix, 1, function(x) {
   as.integer(names(which.max(table(x))))
 })
 
-# 2. For each slice, count how many samples match their most common assignment
+#for each slice, count how many samples match their most common cluster
+#for each column (slice set) in the matrix, if the value of each row within that column is equal to the same index position of the most_common_cluster then sum these values???? ###################CHECK UNDERSTANDING HERE#############################
 slice_stability <- apply(cluster_matrix, 2, function(col) {
   sum(col == most_common_cluster)
 })
 
-# 3. Find the slice with the greatest number of stable leaves
+#Find which slice has the greatest number of stable leaves (is equal to the most common cluster the most number of times) ---UPTO HERE!!!!!!!!
 best_slice_index <- which.max(slice_stability)
 best_slice_size <- slice_sizes[best_slice_index]
 
