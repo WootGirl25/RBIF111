@@ -258,6 +258,8 @@ for (set in names(gene_sets)) {
 par(oldpar)
 ```
 **Discuss:Visually compare and describe changes in the membership in the several top level clusters for each number of the genes chosen. (Visually compare top level clusters)**\
+The dendrogram for the top 100 genes are split into two main clusters at the highest level and the separation is relatively distinct [meaning???]. The middle dendrogram for the top 1000 genes has a similar structure [again split into two main branches] but the branches are longer [especially towards the highest levels ---] which indicates a greater difference between main clusters [how many?], it also looks like the main split between clusters occurs at a different point [?]. Looking at the right dendrogram for all genes, it is very similar to the 1000 gene dendrogram, although there are some samples that are clustered together with fewer other genes, and some with larger lower level clusters. The height between `all` and `top1000` is also very similar which suggests that adding more genes beyond 1000 doesn't change the main cluster groups very much. The samples within the largest clusters remains pretty consistant between all three dendrograms (there are a few that change between clusters at the boundries), but overall these represent that the samples within each cluster are relatively stable. ###REFINE##
+
 
 **Part 2- Repeat this analysis using several clustering metrics including spearman correlation, ward, ward.D, ward.D2, single, complete, average, mcquitty, median or centroid.**\
 Of the list provided I chose to look at ward.D2, average, and spearman correlation (using complete linkage) - I assumed picking a few was the intended goal given the "or" before the last metric.
