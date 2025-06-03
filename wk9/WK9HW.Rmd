@@ -1,25 +1,34 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Week 9 Homework"
+author: "Laura Wooten"
+date: "`r format(Sys.Date(), '%d %B, %Y')`"
+output: 
+  html_notebook:
+    code_folding: 
+    number_sections: true
 ---
-Download data & check normalization
+
+/
+
+*Download data & check normalization*
 ```{r}
-#download raw series counts - use rnaseq data
-counts_data <- read.table("GSE119290_Readhead_2018_RNAseq_gene_counts.txt", header = TRUE, sep = "\t", row.names = 1)
-#download phenotypic data
-geo <- getGEO("GSE119290", GSEMatrix = TRUE)
-pheno <- pData(geo[[1]])
-save(pheno, file = "GSE119290_pheno.Rda")
-load("GSE119290_pheno.Rda")
+# #download raw series counts - use rnaseq data
+# counts_data <- read.table("GSE119290_Readhead_2018_RNAseq_gene_counts.txt", header = TRUE, sep = "\t", row.names = 1)
+# #download phenotypic data
+# geo <- getGEO("GSE119290", GSEMatrix = TRUE)
+# pheno <- pData(geo[[1]])
+# save(pheno, file = "GSE119290_pheno.Rda")
+# load("GSE119290_pheno.Rda")
 boxplot(counts_data)
-boxplot(counts_data, ylim=c(0,4000)) #var vastly different
+boxplot(counts_data, ylim=c(0,4000), main= 'ylim=4000') #var vastly different
 ```
 
 
 
-#Question 1
+# Question 1
 
-#Question 2
+# Question 2\
+*Calculate pca on raw counts with top 100/1000 most variable genes*
 ```{r}
 ## FILTER GENES BY VARIANCE - NEED TO SELECT TOP 100, 1000 MOST VARIABLE GENES
 # Calculate variance for each gene
@@ -89,6 +98,7 @@ cat("Top 100 genes: number of PCs for 50% variance:", pc100.50perc, "; 75% varia
 cat("Top 1000 genes: number of PCs for 50% variance:", pc1000.50perc, "; 75% variance:", pc1000.75perc, "\n")
 ```
 **Describe how much this number of dimensions explaining most of the variance in the data changes for different number of genes considered.**\
+The outcomes are the same for each gene set, suggesting that the main sources of variation in the gene expression data lie within two principle components when explaining 50% variation, and 4 principle components for 75% explanation of variance. This suggests that the main patterns we're trying to analyse is concentrated and variation is mainly explained by a small number of dimensions, and that adding more genes do not contribute much to the variation of the data. For using PCA as an exploratory tool, this means that we can simplify the data to these PCs without loosing much information.
 
 
 *3D Scatterplots*
@@ -107,7 +117,7 @@ annotate_factor <- as.factor(annotate)
 colors <- as.numeric(annotate_factor)
 
 #plot
-oldpar <- par(mfrow = c(2,1))
+oldpar <- par(mfrow = c(1,2))
 scatterplot3d(
   pca_raw_100$x[,1], pca_raw_100$x[,2], pca_raw_100$x[,3],
   color = colors,
@@ -137,7 +147,7 @@ legend(
 par(oldpar)
 ```
 **Describe your findings.**\
-
+The boxplots are using the top 3 PCs that capture the largest variation. As expected we see a similar main cluster between the top_100 and top_1000 samples, but the colored points based on treatment groups are very mixed and don't show much separation which means that the PCs don't strongly separate groups based solely on treatment group. What is noticeable is that in the top_100 there are more black and green outliers in the directions of PC2 and PC3, while in top_1000 the outliers in these directions are mixed between pink, green, and black, with pink being very obvious. I think this suggests that increasing the number of genes analyzed by tenfold introduces more variability (potentially noise), but does not necessarily increase the explained variance related to treatment group separation. \
 
 
 *Normalize and repeat*
@@ -164,7 +174,7 @@ cat("normalized top 100 genes: number of PCs for 50% variance:", norm.pc100.50pe
 cat("normalized top 1000 genes: number of PCs for 50% variance:", normpc1000.50perc, "; 75% variance:", norm.pc1000.75perc, "\n")
 
 #plot
-oldpar <- par(mfrow = c(2,2))
+oldpar <- par(mfrow = c(1,2))
 scatterplot3d(
   pca_norm_100$x[,1], pca_norm_100$x[,2], pca_norm_100$x[,3],
   color = colors,
@@ -220,6 +230,9 @@ legend(
 par(oldpar)
 ```
 **Describe which version produces the best results and explain why.(unnorm/norm)**\
+I just went with a simple normalization method of log2 transformation to reduce extreme values. The clusters for each treatment group for normalized data (particularly the 1000 samples) are both more compact in their clusters and more separated between clusters. Looking at the pca_nor_1000 without prior knowledge from the first part of this question, I would assume there were three (maybe four) main clusters based on these PCs. The spread across the normalized plots is also within a smaller range than the raw data in both gene sets, indicating that normalization compresses the data and reduces the influence of extreme values and technical noise.
+
+This makes sense, as normalization of data reduces outliers and technical variation, and that's why we are seeing a higher spread in the raw data (technical variation and extreme outliers may be overstating the variance in the data). I would still conclude that treatment group alone is not enough to separate the points, but I'd say that normalization of the data improves the interpretation of the PCA plots.
 
 #Question 3
 **Part 1- Perform hierarchical clustering with top 100 and 1000 genes with highest variance as well as all genes in the selected data set. Visually compare and describe changes in the membership in the several top level clusters for each number of the genes chosen.**
@@ -356,14 +369,14 @@ cluster_list <- lapply(dendrograms, function(hcwd2) {
 # combine each vector in cluster lists into a matrix (samples x slices) for easier counting
 sample_names <- colnames(counts_data)
 cluster_matrix <- sapply(cluster_list, function(clusters) clusters[sample_names]) #reorder each vector in cluster_lists to match order of sample_names
-#cluster_matrix now contains samples as rows, and each column is a separate slice. the cells indicate which branch/cluster that sample was grouped into (1,2,3, or 4)### CHECK THIS - IS MY UNDERSTANDING HERE CORRECT????#####################
+# cluster_matrix now has samples as rows and slices as columns, and each cell [i, j] shows the branch for sample i in slice j (branch numbers are arbitary labels assigned by cutree() for each slice)
 
-# for each sample (patient), count how many times it is assigned to its most common cluster
+# for each sample (patient), count how many times it is assigned to its most common cluster across all slices
 leaf_stability <- apply(cluster_matrix, 1, function(x) {
-  max(table(x)) #for each row(patient) what is the maximum number of times it was in the same branch? Creates a contingency table and selects the maximum value.
+  max(table(x)) #for each row(patient) what is the maximum number of times it had the same label? Creates a contingency table and selects the maximum value.
 })
 
-# Print the stability count for each sample -leaf stability gives the most times that sample was in the same branch (cluster) across all 4 slices. if =4, means in the same branch each time.
+# Print the stability count for each sample -leaf stability gives the most times that sample had the same cluster label across all 4 slices. if =4, means in the same branch each time.
 cat("Counts for each sample, showing the number of times that sample (tree leaf) appeared in the same branch across all 4 slices: \n", leaf_stability)
 ```
 
@@ -376,20 +389,23 @@ most_common_cluster <- apply(cluster_matrix, 1, function(x) {
 })
 
 #for each slice, count how many samples match their most common cluster
-#for each column (slice set) in the matrix, if the value of each row within that column is equal to the same index position of the most_common_cluster then sum these values???? ###################CHECK UNDERSTANDING HERE#############################
+#for each column (slice set) in the matrix, compare each samples cluster label in that slice to its most common cluster label across all slices, then sum the number of samples that match to find the column(slice) with the greatest number of matches.
 slice_stability <- apply(cluster_matrix, 2, function(col) {
   sum(col == most_common_cluster)
 })
 
-#Find which slice has the greatest number of stable leaves (is equal to the most common cluster the most number of times) ---UPTO HERE!!!!!!!!
+#Find which slice has the greatest number of stable leaves (is equal to the most common cluster the most number of times) 
 best_slice_index <- which.max(slice_stability)
 best_slice_size <- slice_sizes[best_slice_index]
 
 # print how many samples matched in each slice
 cat("Matches in each slice are", slice_stability)
 cat("\nMost stable dendrogram is for", best_slice_size, "genes (slice", best_slice_index, ")\n")
-print("Dendrogram for most stable slice:")
 #return dendrogram for splice 1
+best_dendro <- dendrograms[[best_slice_index]]
+print("Dendrogram for most stable slice:")
+plot(best_dendro, main = paste("Most stable dendrogram:", best_slice_size, "genes"))
+
 ```
 
 The "tree with the greatest number of leaves that are similar to the rest of the trees" is the dendrogram (slice) where the most samples are clustered in agreement with their most common cluster assignment across all slices.
