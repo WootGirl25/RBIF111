@@ -13,19 +13,27 @@ output:
 *Download data & check normalization*
 ```{r}
 # #download raw series counts - use rnaseq data
-# counts_data <- read.table("GSE119290_Readhead_2018_RNAseq_gene_counts.txt", header = TRUE, sep = "\t", row.names = 1)
+counts_data <- read.table("GSE119290_Readhead_2018_RNAseq_gene_counts.txt", header = TRUE, sep = "\t", row.names = 1)
 # #download phenotypic data
 # geo <- getGEO("GSE119290", GSEMatrix = TRUE)
 # pheno <- pData(geo[[1]])
 # save(pheno, file = "GSE119290_pheno.Rda")
-# load("GSE119290_pheno.Rda")
+load("GSE119290_pheno.Rda")
 boxplot(counts_data)
 boxplot(counts_data, ylim=c(0,4000), main= 'ylim=4000') #var vastly different
 ```
 
 
 
-# Question 1
+# Question 1\
+
+I completed the rest of the assignment before circling back to this question and would like to highlight my process as part of my answer. PCA is a technique that reduces the number of dimensions in a data set to the main components that explain the most variance. It helps summarize and visualize high-dimensional data like gene expression profiles by transforming the original variables (genes, in this case) into a new set of uncorrelated variables called principal components. The main idea is to capture as much of the variance in the data as possible with the fewest number of components. The first principal component explains the largest possible amount of variance, the second explains the next largest while being completely independent from the first, etc.
+
+In the context of gene expression data, PCA is useful for exploring patterns, detecting outliers, and visualizing sample relationships in less dimensions. It does this in an unsupervised manner, meaning it doesn’t use any prior knowledge of sample labels or groupings, PCA simply finds the directions in the data that capture the most variation, regardless of experimental design or annotations in the data. By projecting the data onto the first few PCs, we can see clusters of samples that share similar expression profiles, which may correspond to biological groups and provide insight into where we want to focus our analyses. This technique is especially important as a first look into a data set, as we could conduct regression models against every pair of genes in the set, but that would generate a lot of data and filtering of results. Likewise we could perform multiple hypothesis testing but as we've seen over the weeks this can introduce a large number of type 1 errors very quickly.
+
+In my code, I first filtered the gene expression data to select the most variable genes, since these are most likely to capture meaningful biological differences. I then used the `prcomp()` function in R to perform PCA on the transposed data matrix (so that samples are rows and genes are columns). The code also calculates the proportion of variance explained by each PC, which helps determine how many components are needed to capture most of the information in the data. Then for visualization, I plotted the first three principal components in a 3D scatterplot, coloring the points by treatment group. This allows for an intuitive assessment of whether samples cluster by biological annotation or if other sources of variation are present. The PCA plots show that most of the variance in the data can be captured by just a few principal components. In my analysis, the first two to four PCs explained a large proportion of the total variance, however the samples tendend not to cluster according to treatment group, indicating this is not a primary driving forse of variation. This suggests that other factors may contribute to the observed variation, and shows that PCA is a simple and powerful exploratory tool for high-dimensional data like RNA-seq, allowing us to reduce complexity, visualize patterns, and identify key sources of variation.\
+
+
 
 # Question 2\
 *Calculate pca on raw counts with top 100/1000 most variable genes*
@@ -62,7 +70,7 @@ barplot(pca.var.per, xlab="PCA", ylab="% var", main="all: %var/PCA_top1000") #al
 barplot(pca.var.per[1:6], xlab="PCA", ylab="% var", main="~>5% %var/PCA_top1000")
 par(oldpar)
 ```
-
+These histograms show that PC1 is responsible for approx ~35% of the variability in both `top100` and `top1000`, and visually judging from these histograms there are approximately 6 PCs that individually contribute more than 5% of variance in the data set. To quantitatively assess how many PCs contribute to a set amount of variation (50% or 75%), see below.
 ```{r}
 ## CALCULATE EXPLAINED VARIANCE 
 # Function to get number of PCs explaining at least a threshold of variance
@@ -153,9 +161,9 @@ The boxplots are using the top 3 PCs that capture the largest variation. As expe
 *Normalize and repeat*
 ```{r}
 ## NORMALIZE DATA AND REPEAT
-# Simple normalization: log-transform (add pseudocount to avoid log(0))
+# log-transform (add pseudocount to avoid log(0))
 norm_counts <- log2(counts_data + 1)
-# Repeat steps 2-5 for normalized data
+# Repeat previous code for normalized data
 gene_vars_norm <- apply(norm_counts, 1, var)
 top100_genes_norm <- names(sort(gene_vars_norm, decreasing = TRUE))[1:100]
 top1000_genes_norm <- names(sort(gene_vars_norm, decreasing = TRUE))[1:1000]
@@ -230,11 +238,11 @@ legend(
 par(oldpar)
 ```
 **Describe which version produces the best results and explain why.(unnorm/norm)**\
-I just went with a simple normalization method of log2 transformation to reduce extreme values. The clusters for each treatment group for normalized data (particularly the 1000 samples) are both more compact in their clusters and more separated between clusters. Looking at the pca_nor_1000 without prior knowledge from the first part of this question, I would assume there were three (maybe four) main clusters based on these PCs. The spread across the normalized plots is also within a smaller range than the raw data in both gene sets, indicating that normalization compresses the data and reduces the influence of extreme values and technical noise.
+I just went with a simple normalization method of log2 transformation to reduce extreme values. The clusters for each treatment group for normalized data (particularly the 1000 samples) are both more compact in their clusters and more separated between clusters. Comparing this to the raw data in both size data sets it mainly looks like one large diffuse cluster with several outliers that don't quite fit. Looking at the `pca_nor_100`, I would assume there were three clusters, and four in `pca_nor_1000`. The spread across the normalized PCA plots is also within a smaller range than in the raw data for both gene sets. This suggests that normalization compresses the data, reducing the influence of extreme values and technical noise, which can otherwise overwhelm the variance structure and obscure true biological patterns. By bringing the data onto a more comparable scale, normalization allows the underlying biological differences between treatment groups to become more apparent.
 
-This makes sense, as normalization of data reduces outliers and technical variation, and that's why we are seeing a higher spread in the raw data (technical variation and extreme outliers may be overstating the variance in the data). I would still conclude that treatment group alone is not enough to separate the points, but I'd say that normalization of the data improves the interpretation of the PCA plots.
+Another interesting observation is the change in the number of PCs needed to explain a given amount of variance. With normalized data, it takes 3 PCs to explain 50% of the variance and 7 PCs for 75%, compared to just 2 and 4 PCs, respectively, in the raw data. This indicates that after normalization, the variance is distributed more evenly across multiple components, rather than being dominated by just a few. In other words, normalization reveals more subtle sources of variation that were previously masked by extreme values or technical noise in the raw data. This can be beneficial for downstream analyses, as it provides a more nuanced view of the data’s structure and may help identify additional patterns or subgroups that are biologically relevant. Overall, normalization produces the best results for this analysis. It improves the interpretability of the PCA plots by reducing noise and outlier effects, enhances the separation between treatment groups (although the separation is still not strong), and distributes variance more evenly across the PCs.
 
-#Question 3
+# Question 3\
 **Part 1- Perform hierarchical clustering with top 100 and 1000 genes with highest variance as well as all genes in the selected data set. Visually compare and describe changes in the membership in the several top level clusters for each number of the genes chosen.**
 ```{r}
 #### HC for top 100, 1000, and all genes ####
@@ -258,7 +266,11 @@ for (set in names(gene_sets)) {
 par(oldpar)
 ```
 **Discuss:Visually compare and describe changes in the membership in the several top level clusters for each number of the genes chosen. (Visually compare top level clusters)**\
-The dendrogram for the top 100 genes are split into two main clusters at the highest level and the separation is relatively distinct [meaning???]. The middle dendrogram for the top 1000 genes has a similar structure [again split into two main branches] but the branches are longer [especially towards the highest levels ---] which indicates a greater difference between main clusters [how many?], it also looks like the main split between clusters occurs at a different point [?]. Looking at the right dendrogram for all genes, it is very similar to the 1000 gene dendrogram, although there are some samples that are clustered together with fewer other genes, and some with larger lower level clusters. The height between `all` and `top1000` is also very similar which suggests that adding more genes beyond 1000 doesn't change the main cluster groups very much. The samples within the largest clusters remains pretty consistant between all three dendrograms (there are a few that change between clusters at the boundries), but overall these represent that the samples within each cluster are relatively stable. ###REFINE##
+The dendrogram for the top 100 genes is split into two main clusters at the highest level, with relatively distinct separation and long branches. The samples are fairly evenly divided between these two clusters. The fact that the right branch splits higher up than the left indicates that the samples in the right branch are more similar to each other and only diverge at a higher level of dissimilarity, suggesting a tighter grouping within that cluster.
+
+The middle dendrogram, representing the top 1000 genes, is very similar in structure to the rightmost dendrogram, which uses all genes. In both cases, more samples are grouped within the left main branch, indicating that this group of samples is more similar to each other and distinct from the smaller group in the right branch. Both dendrograms show consistent clustering patterns down to about the 30,000 height mark, after which there are subtle differences in the composition of smaller clusters, some samples may shift between subclusters, but the overall structure remains very similar. The similar heights of the main splits in these two dendrograms suggest that increasing the number of genes beyond 1000 does not substantially alter the primary cluster structure. The overall height of the top100 dendrogram is lower compared to the other two, which indicates that the maximum dissimilarity between clusters is less when using only the top 100 genes. This suggests that the clustering is based on a smaller subset of highly variable genes, which may capture the strongest signals but miss more subtle differences present when more genes are included.
+
+While there are noticeable differences in the finer structure of clusters between the top100 dendrogram and those using more genes, this mainly reflects the increased resolution and complexity that comes from including more features. However, the core membership of the largest clusters remains relatively stable across all three dendrograms.
 
 
 **Part 2- Repeat this analysis using several clustering metrics including spearman correlation, ward, ward.D, ward.D2, single, complete, average, mcquitty, median or centroid.**\
@@ -292,10 +304,17 @@ for (set in names(gene_sets)) {
 par(oldpar)
 
 ```
-**Discuss:Compare these results, describe how each clustering method works, and compare the results to PCA results obtained above.**\
+**Discuss:Compare these results, describe how each clustering method works, and then compare the results to PCA results obtained above.**\
+How each works:\
+Euclidean distance measures the direct distance between points in multidimentional space and uses absolute differences in gene expression values.\
+Euclidean distance paired with ward.D2 linkage merges clusters to reduce the sum of squared differences from the mean distance (total variance within the cluster).\
+Euclidean distance paired with average linkage merges clusters based on the mean Euclidean distance between all paris of samples in the two clusters it is merging.\
+Spearman correlation as distance focuses on the ranks of expression instead of the absolute values (as with Euclidean).\
+Spearman correlation paired with complete linkage focuses on the rank of similarity between points/clusters and then merges clusters based on the maximum distance between points.\
 
+When comparing clustering results across different methods and gene sets, Ward.D2 with Euclidean distance consistently produces compact and balanced clusters. Average linkage with Euclidean distance tends to merge clusters based on moderate similarities, sometimes grouping outlier samples separately, and looks to produce less tight clusters than Ward.D2 or complete linkage, especially in smaller gene samples. in the top 1000 gene set it becomes more similar to spearman + complete, but still separates a small group of samples earlier. Using Spearman correlation with complete linkage focuses on the similarity of expression rather than absolute values. As the number of genes increases from the top 100 to all genes, the main cluster structures remain stable, though smaller subclusters look like they shift, indicating that the dominant signals are robust to feature selection. These hierarchical clustering results align well with the PCA findings in that both approaches show that the primary structure in the data is captured by a small number of dimensions or clusters, and that normalization and inclusion of more variable genes enhance the visualization of groupings. Overall, Ward.D2 and Spearman+Complete look to be most similar at the all gene level. Between the two, ward.D2 with Euclidean distance seems to be more stable when considering outliers, and is the best choice for this gene expression data set.
 
-#Question 4
+# Question 4\
 ```{r eval=FALSE, include=FALSE}
 #previous code - commenting out and not running. - just want record.
 ####################################################################
@@ -350,7 +369,7 @@ data_slices <- lapply(slice_sizes, function(size){ordered_counts[1:size,]}) #cre
 
 *Perform clustering and plot histograms to determine cut size*
 ```{r}
-# 4a. Perform clustering and plot histograms (do NOT cut yet)
+# perform clustering and plot histograms (do NOT cut yet)
 dendrograms <- lapply(data_slices, function(slice) {
   hcwd2 <- hclust(dist(t(slice)), method = "ward.D2")
   hist(hcwd2$height, breaks = 50, main = paste("Hist of merge heights -", nrow(slice), "genes"), xlab = "height")
@@ -410,5 +429,8 @@ plot(best_dendro, main = paste("Most stable dendrogram:", best_slice_size, "gene
 
 ```
 
-The "tree with the greatest number of leaves that are similar to the rest of the trees" is the dendrogram (slice) where the most samples are clustered in agreement with their most common cluster assignment across all slices.
-This tree is considered the most stable or representative of the overall clustering structure.
+This question was asking to show stable my hierarchical clustering results were as I increased the number of genes used, focusing on the most variable genes first. Detailed explanation of the code can be found in the code comments, but as an overview I started by ranking all genes by variance and then created exponentially increasing slices of the data starting with the top 4 genes, then 16, 256, and finally all genes. For each slice, I performed hierarchical clustering using Ward.D2 linkage, since this method gave the most interpretable clusters in the previous question. To make the cluster comparisons fair, I looked at the distribution of merge heights in each dendrogram and picked a uniform cut height of 400,000, which seemed to capture the main splits across all slices. The topics notes showed an example of cutting based on number of cluters, but the question specifically stated to cut based on height so I think this was the best way to proceed.nI then cut each dendrogram at this height and recorded which cluster (branch) each sample was assigned to in each slice.
+
+To assess stability, I built a matrix where each row is a sample and each column is a slice, and the entries show the cluster label for that sample in that slice. For each sample, I counted how many times it appeared in its most common cluster across all slices. If a sample always landed in the same cluster, it would get a score of 4 (since there are 4 slices). The results showed that only a few samples were perfectly stable (score of 4), while most samples switched clusters at least once as more genes were added.
+
+Then to find which gene slice produced the most stable dendrogram overall, for each slice, I counted how many samples matched their most common cluster assignment across all slices. As expected, the smallest slice (top 4 genes) had the highest number of stable samples (38 out of 46), while stability dropped off as I included more genes (16 genes: 31 matches; 256 and all genes: only 8 matches each). This suggests that clustering based on just a handful of highly variable genes gives the most consistent groupings, but as I add more genes, the clustering becomes less stable—probably because additional genes introduce more noise or subtle variation. I think this nicely highlights the basis of PCA, and shows reasoning to why it is used for exploratory analysis, looking at the main components that dictate explained variation in a data set. The results highlight how a small set of highly variable genes can capture the dominant structure in the data, but also raises the point that using too few genes might miss out on important biological variation. So, while stability is highest with fewer genes, there can be a trade-off between stability and capturing the full complexity of the data. It's all dependent on the goal of the analysis.

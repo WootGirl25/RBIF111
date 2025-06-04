@@ -247,7 +247,7 @@ par(oldpar)
 # Compare these results, describe how each clustering method works, and compare the results to PCA results obtained above.
 
 ##CHOICES: ward.D2 + Euclidean, average(UPGMA) + Euclidean, Spearman + Complete linkage
-oldpar <- par(mfrow = c(1, 3)) 
+oldpar <- par(mfrow = c(3, 3)) 
 for (set in names(gene_sets)) {
   matrix <- gene_sets[[set]]
   clust_results[[set]] <- list()
@@ -285,10 +285,12 @@ par(oldpar)
 ############ QUESTION 4 ############
 ####################################
 
-#order genes by variance
+*Create data slices*
+  ```{r}
+#order genes by variance - previously calculted variance in Qn2
 ordered_counts <- counts_data[order(gene_vars, decreasing = TRUE),]
 
-#find exponential slices, 256^2 is larger than number of genes, will have to cut short
+#find exponential slices, 256^2 is larger than number of genes, will have to cut short the range of the last splice to match the number of genes
 slice_sizes <- c(4)
 while (tail(slice_sizes,1) < nrow(ordered_counts)){
   nextsize <- tail(slice_sizes,1)^2 #square the last size in the vector
@@ -296,35 +298,81 @@ while (tail(slice_sizes,1) < nrow(ordered_counts)){
 }
 #make length of last slice == nrow, it will make it the index of last row - then can select into groups
 slice_sizes[length(slice_sizes)] <- nrow(ordered_counts); slice_sizes #check
+
 #create slices (use lapply since slices are in a vector)
-data_slices <- lapply(slice_sizes, 
-                      function(size){
-                        ordered_counts[1:size,]
-                      })
+data_slices <- lapply(slice_sizes, function(size){ordered_counts[1:size,]}) #creates a list of each data slice (genes)
 
-#perform clustering, save dendrograms and histogram heights so know where to cut
-dendrograms <- list()
-hist_heights <- list()
+#output:
+# [1]     4    16   256 26364
+```
 
-for (i in 1:length(data_slices)){
-  slice <- data_slices[[i]]
-  clust <- hclust(dist(t(slice)), method = "ward.D2")
-  dendrograms[[i]] <- clust
-  hist_heights[[i]] <- hist(clust$height, breaks = 50, main= paste("Hist of merge heights- slice", i), xlab= "height")
-}
+*Perform clustering and plot histograms to determine cut size*
+  ```{r}
+# 4a. Perform clustering and plot histograms (do NOT cut yet)
+dendrograms <- lapply(data_slices, function(slice) {
+  hcwd2 <- hclust(dist(t(slice)), method = "ward.D2")
+  hist(hcwd2$height, breaks = 50, main = paste("Hist of merge heights -", nrow(slice), "genes"), xlab = "height")
+  return(hcwd2)
+})
 
-#looks like they all drop off ~400,000 - try this as cut height
+
+```
+Looks like they all drop off at about 400,000 - will use this height as the cut size, it will be uniform for each data slice.
+
+*Cut dendrograms, combine into a matrix for counting, count the number of times individual tree leafs are identified in the same branch across all slices.*
+  ```{r}
 cut_height <- 400000
+cluster_list <- lapply(dendrograms, function(hcwd2) {
+  cutree(hcwd2, h = cut_height)
+})
 
-##cut trees and check stability - use cutree(),
-leaf_stability <- list()
-for (i in seq_along(dendrograms)){
-  clust <- dendograms[[i]]
-  clust.cut <- cutree(clust, h= cut_height)
-  leaf_stability[[i]] <- clust.cut
-}
+# combine each vector in cluster lists into a matrix (samples x slices) for easier counting
+sample_names <- colnames(counts_data)
+cluster_matrix <- sapply(cluster_list, function(clusters) clusters[sample_names]) #reorder each vector in cluster_lists to match order of sample_names
+# cluster_matrix now has samples as rows and slices as columns, and each cell [i, j] shows the branch for sample i in slice j (branch numbers are arbitary labels assigned by cutree() for each slice)
 
+# for each sample (patient), count how many times it is assigned to its most common cluster across all slices
+leaf_stability <- apply(cluster_matrix, 1, function(x) {
+  max(table(x)) #for each row(patient) what is the maximum number of times it had the same label? Creates a contingency table and selects the maximum value.
+})
 
+# Print the stability count for each sample -leaf stability gives the most times that sample had the same cluster label across all 4 slices. if =4, means in the same branch each time.
+cat("Counts for each sample, showing the number of times that sample (tree leaf) appeared in the same branch across all 4 slices: \n", leaf_stability)
+```
+#output:
+#Counts for each sample, showing the number of times that sample (tree leaf) appeared in the same branch across all 4 slices: 
+#4 2 2 2 2 2 2 2 2 3 2 3 2 2 2 3 2 1 2 2 2 1 2 1 1 1 1 1 1 2 2 2 2 2 1 1 4 4 2 2 1 1 2 2
 
+*Find the tree with the greatest number of leaves that are similar to the rest of the trees (most common branch across slices)*
+  ```{r}
+# for each sample, find its most common cluster  across all slices
+#Repeats the previous code, but this time for each sample (row) finds the name of the cluster with the maximum value, instead of returning the highest value.
+most_common_cluster <- apply(cluster_matrix, 1, function(x) {
+  as.integer(names(which.max(table(x))))
+})
+
+#for each slice, count how many samples match their most common cluster
+#for each column (slice set) in the matrix, compare each samples cluster label in that slice to its most common cluster label across all slices, then sum the number of samples that match to find the column(slice) with the greatest number of matches.
+slice_stability <- apply(cluster_matrix, 2, function(col) {
+  sum(col == most_common_cluster)
+})
+
+#Find which slice has the greatest number of stable leaves (is equal to the most common cluster the most number of times) 
+best_slice_index <- which.max(slice_stability)
+best_slice_size <- slice_sizes[best_slice_index]
+
+# print how many samples matched in each slice
+cat("Matches in each slice are", slice_stability)
+cat("\nMost stable dendrogram is for", best_slice_size, "genes (slice", best_slice_index, ")\n")
+#return dendrogram for splice 1
+best_dendro <- dendrograms[[best_slice_index]]
+print("Dendrogram for most stable slice:")
+plot(best_dendro, main = paste("Most stable dendrogram:", best_slice_size, "genes"))
+
+```
+#output:
+#Matches in each slice are 38 31 8 8
+# Most stable dendrogram is for 4 genes (slice 1 )
+# [1] "Dendrogram for most stable slice:"
 
 
