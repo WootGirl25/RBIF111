@@ -1,0 +1,174 @@
+---
+title: "qn_notes"
+output: html_document
+date: "2025-06-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+# Question 1
+
+You're off to a great start! Let's break this down and clarify how **TMB (Tumor Mutational Burden)** fits into the model and how to proceed with the analysis.
+
+---
+
+### 🔍 Clarifying the Question
+
+The question asks you to:
+
+1. **Build a linear regression model** with:
+   - **Input (independent variable)**: `ER_Status_By_IHC` (categorical: Positive/Negative)
+   - **Output (dependent variable)**: `Overall_Survival_Months` (continuous)
+
+2. **Calculate the 95% confidence interval** for the regression coefficients.
+
+3. **Explain**:
+   - The **coefficients** (especially for ER status)
+   - Their **95% confidence intervals**
+   - The **p-value for TMB_nonsynonymous**
+
+---
+
+### 🧠 So, where does TMB come in?
+
+Even though the initial model is just `OSM ~ ER`, the question also asks for the **p-value for TMB**, which implies that **TMB should be included in the model**.
+
+So, you should **extend your model** to include `TMB_nonsynonymous` as an additional predictor:
+
+```r
+# Filter and clean data
+ers.osm.df <- pData[pData$ER_Status_By_IHC %in% c("Positive", "Negative") & 
+                    !is.na(pData$Overall_Survival_Months) & 
+                    !is.na(pData$TMB_nonsynonymous), 
+                    c("ER_Status_By_IHC", "Overall_Survival_Months", "TMB_nonsynonymous")]
+
+# Rename columns for clarity
+colnames(ers.osm.df) <- c("ER", "OSM", "TMB")
+
+# Convert ER to factor
+ers.osm.df$ER <- factor(ers.osm.df$ER, levels = c("Negative", "Positive"))
+
+# Fit linear model with TMB included
+ers.osm.lm <- lm(OSM ~ ER + TMB, data = ers.osm.df)
+
+# Summary of the model
+summary(ers.osm.lm)
+
+# 95% confidence intervals
+confint(ers.osm.lm)
+```
+
+---
+
+### 🧾 Interpretation Guide
+
+- **Coefficients**:
+  - The intercept represents the expected survival months for ER-negative patients with TMB = 0.
+  - The coefficient for `ERPositive` shows the difference in survival months between ER-positive and ER-negative patients.
+  - The coefficient for `TMB` shows the change in survival months for each unit increase in TMB.
+
+- **95% Confidence Intervals**:
+  - These give a range in which the true coefficient is likely to fall 95% of the time.
+  - If the CI for a coefficient does **not** include 0, it's statistically significant.
+
+- **p-value for TMB**:
+  - Tells you whether TMB is a statistically significant predictor of survival.
+  - A p-value < 0.05 typically indicates significance.
+
+---
+
+# Question 2
+To include TMB
+
+Great question! You're now moving into **survival analysis**, and the Cox regression model is the right tool for this. Let's walk through how to incorporate **TMB** into the **Cox proportional hazards model**, and how to interpret the results.
+
+---
+
+### ✅ **Step-by-Step Plan for the Cox Regression Model**
+
+#### 1. **Filter and Prepare the Data**
+- Keep only rows where `ER_Status_By_IHC` is "Positive" or "Negative"
+- Remove rows with `NA` or "Indeterminate" in:
+  - `ER_Status_By_IHC`
+  - `Overall_Survival_Months`
+  - `Overall_Survival_Status`
+  - `TMB_nonsynonymous`
+
+#### 2. **Convert Survival Status**
+- `Overall_Survival_Status` should be binary:
+  - 1 = event occurred (e.g., death)
+  - 0 = censored (e.g., still alive)
+
+#### 3. **Fit the Cox Model**
+```r
+library(survival)
+
+# Clean and prepare data
+cox.df <- pData[pData$ER_Status_By_IHC %in% c("Positive", "Negative") &
+                !is.na(pData$Overall_Survival_Months) &
+                !is.na(pData$Overall_Survival_Status) &
+                !is.na(pData$TMB_nonsynonymous), 
+                c("ER_Status_By_IHC", "Overall_Survival_Months", "Overall_Survival_Status", "TMB_nonsynonymous")]
+
+# Rename columns
+colnames(cox.df) <- c("ER", "OSM", "Status", "TMB")
+
+# Convert ER to factor
+cox.df$ER <- factor(cox.df$ER, levels = c("Negative", "Positive"))
+
+# Convert survival status to binary (assuming "Dead" = 1, "Alive" = 0)
+cox.df$Status <- ifelse(cox.df$Status == "Dead", 1, 0)
+
+# Fit Cox model
+cox.model <- coxph(Surv(OSM, Status) ~ ER + TMB, data = cox.df)
+
+# Summary
+summary(cox.model)
+
+# 95% Confidence Intervals for Hazard Ratios (Odds Ratios)
+exp(confint(cox.model))
+```
+
+---
+
+### 📈 Kaplan-Meier Curve
+
+To visualize survival by ER status:
+
+```r
+library(survminer)
+
+# Fit survival object
+surv.obj <- Surv(cox.df$OSM, cox.df$Status)
+
+# Fit Kaplan-Meier
+km.fit <- survfit(surv.obj ~ ER, data = cox.df)
+
+# Plot
+ggsurvplot(km.fit, data = cox.df, pval = TRUE, conf.int = TRUE,
+           risk.table = TRUE, legend.labs = c("ER Negative", "ER Positive"),
+           title = "Kaplan-Meier Survival Curve by ER Status")
+```
+
+---
+
+### 🧾 Interpretation
+
+- **Hazard Ratio (HR)**:
+  - `exp(coef)` gives the **hazard ratio** (similar to odds ratio in logistic regression).
+  - HR > 1: higher risk of death.
+  - HR < 1: lower risk of death.
+
+- **95% Confidence Interval**:
+  - If the CI for a variable **does not include 1**, it's statistically significant.
+
+- **p-value for TMB**:
+  - Tells you whether TMB is a significant predictor of survival.
+  - A small p-value (typically < 0.05) means TMB significantly affects survival.
+
+---
+
+Would you like me to simulate this analysis with example data and generate the Kaplan-Meier plot for you?
