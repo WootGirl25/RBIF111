@@ -1,0 +1,376 @@
+````r
+# ---------------------------------------------------
+# QUESTION: Identify the genes most significantly associated with ‘overall survival months’ and ‘Overall_Survival_Status’ in tumor samples. We will employ the holdout method for cross-validation by splitting the dataset into two parts: a training set comprising 60% of the data and a testing set comprising 40%. The model will be trained on the training set, tested on the testing set, and its performance evaluated. To simplify the analysis, we will use the median expression of each gene as a cutoff to categorize patients into high and low expression groups for input. Please write code to calculate p-values between outcomes and all genes in the mRNA expression table using Cox regression. All p-values for each gene need to be saved and corrected for multiple hypothesis testing. Please report the top 5 genes based on p-values in the training set and their corresponding p-values in the testing set. Please save the top 5 genes Kaplan-Meier curves for testing set results.
+# ---------------------------------------------------
+
+# DATA DOWNLOAD
+#Import data
+pData <- read.csv("/cloud/project/wk5/TCGA_BRCA_clinical_data.csv", row.names=1)
+eData <- read.csv("/cloud/project/wk5/TCGA_BRCA_mRNA_expression.csv", row.names=1)
+
+#Data structure:\
+# pData:\
+#  - clinical data where each patient is a row, 1st column is tumor sample number, 2nd column is normal tissue sample number.
+#  - dimensions (103 x 17)
+#  - all columns names in order:  "Sample_ID_Tumor"         "Sample_ID_Normal"        "Diagnosis_Age"           "Disease_Stage"             "Tumor_Stge_Coe"          "Cancer_Type_Detailed"    "Disease_Free_Months"     "Disease_Free_Status"     "ER_Status_By_IHC"        "Fraction_Genome_Altered" "IHCHER2"                 "Overall_Survival_Months" "Overall_Survival_Status" "PR_status_by_ihc"        "Race_Category"           "Sex"                   "TMB_nonsynonymous"    
+# eData:\ 
+# - mRNA expression values, dimentions (20501 x 206) columns are samples (all 103 tumor samples [ending in _01], followed by all normal tissue samples [ending in _11]). Rows are genes.
+
+################
+#Approach 1:
+###############
+
+#1. select tumor samples only & make sure samples are in the same order in both expression data and clinical data
+common.smpls <- intersect(colnames(eData), pData$Sample_ID_Tumor) #restrict samples in eData to only the tumor_samples as listed in pData
+texprs <- eData[, common.smpls]
+tpdata <- pData[pData$Sample_ID_Tumor==common.smpls,]
+rownames(tpdata) <- tpdata$Sample_ID_Tumor #make tumorID the rownames for simplicity
+
+#remove nas, create new columns (status = binary, OSM = survival months) - keep together at end for ease
+tpdata <- tpdata[!is.na(tpdata$Overall_Survival_Months) & !is.na(tpdata$Overall_Survival_Status),] #select tumor samples without NA values for the cox survival object
+tpdata$STATUS <- ifelse(tpdata$Overall_Survival_Status == "1:DECEASED", 1, 0) #convert whether event of death has occurred from string to binary
+tpdata$OSM <- tpdata$Overall_Survival_Months
+#subset texprs to match tpdata
+texprs <- texprs[,rownames(tpdata)] #if any samples have NA in survival data from clinical dataframe, remove those samples from the expression data.
+
+#2. split into train/test
+set.seed(1)
+train.index <- sample(1:nrow(tpdata), size = 0.6*nrow(tpdata)) #sample without replacement 60% of number of samples - rounds down to whole number
+tpdata.train <- tpdata[train.index,] #select rows corresponding to sampled indices
+tpdata.test <- tpdata[-train.index,] #select rows not corresponding to sampled indices
+texprs.train <- texprs[, rownames(tpdata.train)] #filter expression data to training
+texprs.test <- texprs[, rownames(tpdata.test)]
+#check to make sure all samples are included
+as.numeric(dim(texprs.train)[2]) + as.numeric(dim(texprs.test)[2]) == as.numeric(dim(tpdata)[1])
+
+#3. For each gene (loop) in training set find median expression (dont want model to know median value of whole data set),
+# partition training samples into high or low groups if the sample value exceeds the median value
+# fit cox model: outcome training survival months & status, sample labeled as high/low (testing whether high/low expression patient group for each gene is correlated with the hazard of the event occurring)
+# save p value for each gene
+
+pvals <- c()
+
+#training samples only
+for (gene in rownames(texprs.train)){
+  i.gene.exprs <- as.numeric(texprs.train[gene,]) #expression values for i-th gene in all training samples - as numeric or median will error
+  i.gene.median <- median(i.gene.exprs, na.rm = TRUE) #median of values for that gene in training samples
+  smpl.labels <- ifelse(i.gene.exprs > i.gene.median, "high", "low") #each sample value for that gene compared to median, labeled as high or low
+  #smpl.labels is just a vector of "high" or "low" not linked to values anymore
+  if (length(unique(smpl.labels))<2){
+    next #any gene that has all samples in either high or low, will not be assessed.
+  }
+  i.cox <- coxph(Surv(tpdata.train$OSM, tpdata.train$STATUS) ~ smpl.labels)
+  pvals[gene] <- summary(i.cox)$coefficients[1,5]
+}
+pvals.fdr <-  p.adjust(pvals, method = "fdr")
+save(pvals, file = "pvals.Rda")
+sort(pvals)[1:10]
+sort(pvals.fdr)[1:10]
+
+#4. select top 5 uncorrected - proceed with test set
+top5 <- names(sort(pvals)[1:5])
+
+#5 use these top genes in testing set data + plot KM curves
+texprs.test <- texprs.test[, rownames(tpdata.test)]
+pvals.test <- c()
+for (gene in top5){
+  median <- median(as.numeric(texprs.train[gene,]), na.rm = TRUE) #still use training median - dont let model see new data
+  label.test <- ifelse(texprs.test[gene,] > median, "high", "low")
+  label.test <- factor(label.test, levels = c("low", "high"))
+  cox.test <- coxph(Surv(tpdata.test$OSM, tpdata.test$STATUS)~label.test)
+  pvals.test[gene] <- summary(cox.test)$coefficients[1,5]
+
+  #plot
+  plot(survfit(Surv(tpdata.test$OSM, tpdata.test$STATUS)~label.test),
+       col = c("blue", "red"), lwd = 2,
+       main = paste("KM Curve for", gene, "(Test Set)"),
+       xlab = "Months", ylab = "Survival Probability")
+  legend("bottomleft", legend = c("Low", "High"), col = c("blue", "red"), lwd = 2)
+}
+
+pvals.test
+pval.df <- data.frame(train= pvals[top5], train.fdr=pvals.fdr[names(pvals[top5])], test= pvals.test[names(pvals[top5])])
+pval.df
+
+################
+#Approach 2:
+###############
+cox_regression_eval = function (tumor_sample_data, tumor_array_data, status_col, survival_col, seed_number, p_method) {
+  #sample and array data shoudl be either in matrix or data frame format but I convert to DF here just in cases
+  tumor_sample_data = as.data.frame(tumor_sample_data)
+  tumor_array_data = as.data.frame(tumor_array_data)
+  na_index = c() #find NA free index for survival data
+  sample.ct = dim(tumor_sample_data)[1]
+  gene.ct = dim(tumor_array_data)[1]
+  #loop to create index vector of NA free samples
+  for (sample in 1:sample.ct) {
+    if (!is.na(tumor_sample_data[sample,status_col]) & (!is.na(tumor_sample_data[sample,survival_col]))) {
+      na_index = c(na_index, sample)
+    }
+  }
+  #remove relevent NAs in sample data and match it with array data
+  sample_data = tumor_sample_data[na_index,]
+  array_data = tumor_array_data[,na_index]
+  #I assumed your method to build additional sample data columns
+  sample_data$STATUS = ifelse(sample_data[[status_col]] == "1:DECEASED", 1, 0)
+  sample_data$OSM = sample_data[[survival_col]]
+  sample.ct = dim(sample_data)[1] #reset sample count
+  #loop to make array data a high vs low representation 
+  for (gene in 1:gene.ct) {
+    gene_val = c(t(array_data))
+    m = median(gene_val) 
+    for (i.gene in 1:sample.ct) {
+      if (array_data[gene,i.gene] > m) {
+        array_data[gene,i.gene] = "high"
+      } else {
+        array_data[gene,i.gene] = "low"
+      }
+    }
+  }
+  #generate training and test data sets for sample data and array data; could add additional code at the end to evaluate the models on the test sets if you wish, just comment the current return(temp.df)
+  sample_index = 1:sample.ct #list of indexes
+  set.seed(seed_number) #seed to fix
+  training_index = sample(sample_index, size = 0.6*sample.ct) #training index and test index is the remaining indexes
+  #split both the sample and array data sets accoridngly
+  training_sample_data = sample_data[training_index,]
+  test_sample_data = sample_data[-training_index,]
+  training_array_data = array_data[,training_index]
+  test_array_data = array_data[,-training_index]
+  
+  #build dataframe for pvalues and adjusted p-values to review afterword 
+  temp.df = data.frame(matrix(0, nrow = gene.ct, ncol = dim(training_array_data)[2]))
+  rownames(temp.df) = rownames(array_data) #gene names
+  colnames(temp.df) = c("pvalue", "p.adjust") #two columns
+  #loops to perform the cox regression and calculate p-values; included your required must have both high and low samples 
+  for (gene in 1:gene.ct) {
+    gene_data = c(t(training_array_data[gene,]))
+    if (length(unique(gene_data)) < 2 ){
+    next
+    } else {
+      i.cox = coxph(Surv(training_sample_data$OSM, training_sample_data$STATUS) ~ gene_data) #model
+      temp.df[gene, "pvalue"] = summary(i.cox)$coefficients[1,5] #p-value
+    }
+  }
+  
+  adjust.p = p.adjust(temp.df$pvalue, method = p_method) #adjust pvalue vector
+  temp.df[,"p.adjust"] = adjust.p #added to data frame
+  temp.df = temp.df[order(temp.df$pvalue, decreasing = FALSE),] #ordered specifically by p-value to avoid adjustments nullifying differences between genes.  Never encountered p-value order not matching adjusted p-value order
+  return(temp.df) #returns the data frame itself for review 
+}
+
+#function call
+test.df <- cox_regression_eval(tpdata, texprs, "Overall_Survival_Status", "Overall_Survival_Months", 1, "fdr")
+
+````
+
+Here’s a comparison and assessment of the two approaches in your two_approach.R file:
+
+---
+
+### **Comparison of Approaches**
+
+#### **Approach 1**
+- **Workflow:**  
+  1. Filters tumor samples, aligns clinical and expression data, removes NAs.
+  2. Splits data into train (60%) and test (40%) sets.
+  3. For each gene in the training set:
+     - Calculates the median expression (using only training data).
+     - Labels samples as "high" or "low" based on the median.
+     - Runs Cox regression (Surv(OSM, STATUS) ~ high/low label).
+     - Stores p-values.
+  4. Adjusts p-values for multiple testing (FDR).
+  5. Selects top 5 genes by raw p-value.
+  6. Evaluates these genes in the test set (using the training median as cutoff), reports test p-values, and plots KM curves.
+
+#### **Approach 2**
+- **Workflow:**  
+  1. Cleans NAs in survival data.
+  2. Converts all gene expression values to "high"/"low" using the median **of all samples** (not just training).
+  3. Splits data into train/test sets.
+  4. For each gene in the training set:
+     - Runs Cox regression (Surv(OSM, STATUS) ~ high/low label).
+     - Stores p-values.
+  5. Adjusts p-values for multiple testing (user-specified method).
+  6. Returns a data frame of p-values and adjusted p-values.
+
+---
+
+### **Will They Give the Same Top Genes?**
+
+#### **Key Differences**
+- **Median Calculation:**
+  - **Approach 1:** Median is calculated **only on the training set** for each gene. This is correct for cross-validation, as it avoids data leakage.
+  - **Approach 2:** Median is calculated **using all samples** (before splitting into train/test). This introduces data leakage, as information from the test set influences the label assignment in the training set.
+
+- **Label Assignment:**
+  - **Approach 1:** Labels are assigned based on the training set median, so the test set is truly "unseen."
+  - **Approach 2:** Labels are assigned based on the overall median, so the split is not independent.
+
+- **Test Set Evaluation:**
+  - **Approach 1:** Explicitly evaluates the top genes in the test set, using the training median for cutoff.
+  - **Approach 2:** Does not evaluate the test set; only returns training set results.
+
+#### **Expected Results**
+- **Raw p-values (training set):**
+  - **Not identical.** Because the median cutoff differs, the "high"/"low" groupings may differ, leading to different Cox regression results and p-values.
+  - **Approach 2** may overestimate significance due to data leakage.
+
+- **Adjusted p-values:**
+  - **Also not identical,** for the same reasons as above.
+
+- **Top Genes:**
+  - **Likely to differ,** especially if the distribution of gene expression is not symmetric or if the sample size is small.
+
+---
+
+### **Additional Feedback**
+
+- **Approach 1 is methodologically correct** for cross-validation and unbiased model evaluation. It avoids data leakage and properly evaluates model generalizability.
+- **Approach 2 is flawed** due to data leakage (using all data to set the median cutoff before splitting). This can inflate performance estimates and lead to overfitting.
+- **Test Set Evaluation:** Only Approach 1 evaluates the top genes in the test set, which is essential for assessing model performance.
+- **Code Robustness:**  
+  - Approach 1 is more transparent and easier to follow for reproducibility.
+  - Approach 2 could be improved by moving the median calculation *after* the train/test split and using only the training set for median calculation.
+
+---
+
+### **Summary Table**
+
+| Aspect                | Approach 1                | Approach 2                |
+|-----------------------|---------------------------|---------------------------|
+| Median Calculation    | Training set only         | All samples (data leak)   |
+| Label Assignment      | Training median           | Overall median            |
+| Test Set Evaluation   | Yes                       | No                        |
+| Data Leakage          | No                        | Yes                       |
+| Results Comparable?   | No                        | No                        |
+
+---
+
+### **Recommendation**
+
+- **Use Approach 1** for unbiased, valid results.
+- If you want to improve Approach 2, move the median calculation to after the train/test split and use only the training set for determining cutoffs.
+
+---
+
+**In summary:**  
+You should not expect both approaches to yield the same top genes or p-values. Approach 1 is correct; Approach 2 should be revised to avoid data leakage.
+
+## EDIT APPROACH 2
+Certainly! Here’s how you can **edit Approach 2** to avoid data leakage and make it methodologically consistent with Approach 1:
+
+**Key changes:**
+- Calculate the median for each gene **using only the training set**.
+- Assign "high"/"low" labels in both training and test sets using the training median.
+- Evaluate p-values in both training and test sets for the top genes.
+
+Below is a revised version of your function:
+
+````r
+cox_regression_eval_fixed = function (tumor_sample_data, tumor_array_data, status_col, survival_col, seed_number, p_method) {
+  # Ensure data frames
+  tumor_sample_data = as.data.frame(tumor_sample_data)
+  tumor_array_data = as.data.frame(tumor_array_data)
+  
+  # Remove NAs in survival data
+  na_index = which(!is.na(tumor_sample_data[[status_col]]) & !is.na(tumor_sample_data[[survival_col]]))
+  sample_data = tumor_sample_data[na_index,]
+  array_data = tumor_array_data[, na_index]
+  
+  # Add STATUS and OSM columns
+  sample_data$STATUS = ifelse(sample_data[[status_col]] == "1:DECEASED", 1, 0)
+  sample_data$OSM = sample_data[[survival_col]]
+  
+  # Split into train/test
+  set.seed(seed_number)
+  sample.ct = nrow(sample_data)
+  train_idx = sample(1:sample.ct, size = 0.6 * sample.ct)
+  test_idx = setdiff(1:sample.ct, train_idx)
+  
+  train_sample = sample_data[train_idx, ]
+  test_sample = sample_data[test_idx, ]
+  train_array = array_data[, train_idx]
+  test_array = array_data[, test_idx]
+  
+  gene.ct = nrow(array_data)
+  pvals = rep(NA, gene.ct)
+  names(pvals) = rownames(array_data)
+  
+  # For each gene, use training median to label train/test, run Cox on train
+  train_labels = matrix(NA, nrow = gene.ct, ncol = ncol(train_array))
+  test_labels = matrix(NA, nrow = gene.ct, ncol = ncol(test_array))
+  rownames(train_labels) = rownames(array_data)
+  rownames(test_labels) = rownames(array_data)
+  
+  for (gene in 1:gene.ct) {
+    gene_name = rownames(array_data)[gene]
+    train_expr = as.numeric(train_array[gene, ])
+    median_val = median(train_expr, na.rm = TRUE)
+    train_labels[gene, ] = ifelse(train_expr > median_val, "high", "low")
+    # Only proceed if both groups present
+    if (length(unique(train_labels[gene, ])) < 2) next
+    i.cox = coxph(Surv(train_sample$OSM, train_sample$STATUS) ~ train_labels[gene, ])
+    pvals[gene_name] = summary(i.cox)$coefficients[1,5]
+    # Prepare test labels for later
+    test_expr = as.numeric(test_array[gene, ])
+    test_labels[gene, ] = ifelse(test_expr > median_val, "high", "low")
+  }
+  
+  # Adjust p-values
+  pvals.fdr = p.adjust(pvals, method = p_method)
+  
+  # Top 5 genes by raw p-value
+  top5 = names(sort(pvals, na.last = NA))[1:5]
+  
+  # Test set evaluation for top 5
+  pvals_test = rep(NA, 5)
+  names(pvals_test) = top5
+  for (i in seq_along(top5)) {
+    gene = top5[i]
+    labels = factor(test_labels[gene, ], levels = c("low", "high"))
+    if (length(unique(labels)) < 2) next
+    cox.test = coxph(Surv(test_sample$OSM, test_sample$STATUS) ~ labels)
+    pvals_test[gene] = summary(cox.test)$coefficients[1,5]
+    # Plot KM curve
+    plot(survfit(Surv(test_sample$OSM, test_sample$STATUS) ~ labels),
+         col = c("blue", "red"), lwd = 2,
+         main = paste("KM Curve for", gene, "(Test Set)"),
+         xlab = "Months", ylab = "Survival Probability")
+    legend("bottomleft", legend = c("Low", "High"), col = c("blue", "red"), lwd = 2)
+  }
+  
+  # Output summary
+  pval.df = data.frame(
+    train = pvals[top5],
+    train.fdr = pvals.fdr[top5],
+    test = pvals_test
+  )
+  print(pval.df)
+  return(list(pvals = pvals, pvals.fdr = pvals.fdr, top5 = top5, test.pvals = pvals_test, summary = pval.df))
+}
+
+# Example function call:
+test.df.fixed <- cox_regression_eval_fixed(tpdata, texprs, "Overall_Survival_Status", "Overall_Survival_Months", 1, "fdr")
+````
+
+**This version:**
+- Uses only the training set to determine the median for each gene.
+- Assigns "high"/"low" in both train and test sets using the training median.
+- Evaluates and prints p-values for both sets for the top 5 genes.
+- Plots KM curves for the test set.
+
+Let me know if you want further customization!
+
+**OUTPUT**
+
+````r
+ 
+        train       train.fdr     test
+STARD6	3.216698e-05	0.6365202	0.8477792	
+FAM138B	1.024256e-04	0.8433552	NA	
+HSPB7	5.095004e-04	0.8433552	0.7044016	
+BCL2L14	6.816001e-04	0.8433552	0.2986264	
+ZNF845	6.958845e-04	0.8433552	0.1890585	
+5 rows
+````
+Same output as approach 1

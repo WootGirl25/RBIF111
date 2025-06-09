@@ -1,0 +1,230 @@
+---
+title: "R Notebook"
+output: 
+  html_notebook:
+    code_folding: 
+    number_sections: true
+---
+TEST OUT QN 5
+
+```{r}
+#steps:
+#Assign High/Low Expression Groups in cbio.5 - use median from training set
+#Run cox, plot KM curves
+#save top5
+top5 <- rownames(cbio.5)
+
+pvals.cbio <- c()
+for (gene in top5) {
+  # Use the training set median for this gene
+  train.median <- median(as.numeric(texprs.train[gene, ]), na.rm = TRUE)
+  exprs.cbio <- as.numeric(cbio.5[gene, ])
+  labels.cbio <- ifelse(exprs.cbio > train.median, "high", "low") #for all 1082 samples
+  #labels.cbio <- factor(labels.cbio, levels = c("low", "high"))
+  
+  # Only run if both groups are present
+  if (length(unique(labels.cbio)) < 2) {
+    pvals.cbio[gene] <- NA
+    next
+  }
+  
+  cox.cbio <- coxph(Surv(cbio.pdata$OSM, cbio.pdata$STATUS) ~ labels.cbio)
+  pvals.cbio[gene] <- summary(cox.cbio)$coefficients[1, 5]
+  
+  # Plot KM curve
+  plot(survfit(Surv(cbio.pdata$OSM, cbio.pdata$STATUS) ~ labels.cbio),
+       col = c("blue", "red"), lwd = 2,
+       main = paste("KM Curve for", gene, "(cbioportal)"),
+       xlab = "Months", ylab = "Survival Probability")
+  legend("bottomleft", legend = c("Low", "High"), col = c("blue", "red"), lwd = 2)
+}
+
+```
+TEST OUT GONGOLS SUGGESTIONS:
+1. DO AADACL3, AARSDI, ABCA1, ABCA7 ETC HAVE THE SAME UNCORRECTED PVALS?
+```{r}
+sort(pvals.fdr)[2:10]
+A.names <- names(sort(pvals.fdr)[2:10])
+pvals[A.names]
+```
+Uncorrected pvals not the same. 
+
+TRY DIFFERENT FUNCTION TO CALCULATE FDR -> QVALUE
+```{r}
+library(qvalue)
+qobj <- qvalue(pvals)
+qvals <- qobj$qvalues
+
+# Top 5 genes by q-value
+sort(qvals)[1:10]
+names(sort(qvals))[1:5]
+```
+
+
+Try bonferroni correction on pvals.
+```{r}
+pvals.bon <- p.adjust(pvals, method = "bonferroni")
+sort(pvals.bon)[1:10]
+```
+```{r}
+cox_regression_eval = function (tumor_sample_data, tumor_array_data, status_col, survival_col, seed_number, p_method) {
+  #sample and array data shoudl be either in matrix or data frame format but I convert to DF here just in cases
+  tumor_sample_data = as.data.frame(tumor_sample_data)
+  tumor_array_data = as.data.frame(tumor_array_data)
+  na_index = c() #find NA free index for survival data
+  sample.ct = dim(tumor_sample_data)[1]
+  gene.ct = dim(tumor_array_data)[1]
+  #loop to create index vector of NA free samples
+  for (sample in 1:sample.ct) {
+    if (!is.na(tumor_sample_data[sample,status_col]) & (!is.na(tumor_sample_data[sample,survival_col]))) {
+      na_index = c(na_index, sample)
+    }
+  }
+  #remove relevent NAs in sample data and match it with array data
+  sample_data = tumor_sample_data[na_index,]
+  array_data = tumor_array_data[,na_index]
+  #I assumed your method to build additional sample data columns
+  sample_data$STATUS = ifelse(sample_data[[status_col]] == "1:DECEASED", 1, 0)
+  sample_data$OSM = sample_data[[survival_col]]
+  sample.ct = dim(sample_data)[1] #reset sample count
+  #loop to make array data a high vs low representation 
+  for (gene in 1:gene.ct) {
+    gene_val = c(t(array_data))
+    m = median(gene_val) 
+    for (i.gene in 1:sample.ct) {
+      if (array_data[gene,i.gene] > m) {
+        array_data[gene,i.gene] = "high"
+      } else {
+        array_data[gene,i.gene] = "low"
+      }
+    }
+  }
+  #generate training and test data sets for sample data and array data; could add additional code at the end to evaluate the models on the test sets if you wish, just comment the current return(temp.df)
+  sample_index = 1:sample.ct #list of indexes
+  set.seed(seed_number) #seed to fix
+  training_index = sample(sample_index, size = 0.6*sample.ct) #training index and test index is the remaining indexes
+  #split both the sample and array data sets accoridngly
+  training_sample_data = sample_data[training_index,]
+  test_sample_data = sample_data[-training_index,]
+  training_array_data = array_data[,training_index]
+  test_array_data = array_data[,-training_index]
+  
+  #build dataframe for pvalues and adjusted p-values to review afterword 
+  temp.df = data.frame(matrix(0, nrow = gene.ct, ncol = dim(training_array_data)[2]))
+  rownames(temp.df) = rownames(array_data) #gene names
+  colnames(temp.df) = c("pvalue", "p.adjust") #two columns
+  #loops to perform the cox regression and calculate p-values; included your required must have both high and low samples 
+  for (gene in 1:gene.ct) {
+    gene_data = c(t(training_array_data[gene,]))
+    if (length(unique(gene_data)) < 2 ){
+    next
+    } else {
+      i.cox = coxph(Surv(training_sample_data$OSM, training_sample_data$STATUS) ~ gene_data) #model
+      temp.df[gene, "pvalue"] = summary(i.cox)$coefficients[1,5] #p-value
+    }
+  }
+  
+  adjust.p = p.adjust(temp.df$pvalue, method = p_method) #adjust pvalue vector
+  temp.df[,"p.adjust"] = adjust.p #added to data frame
+  temp.df = temp.df[order(temp.df$pvalue, decreasing = FALSE),] #ordered specifically by p-value to avoid adjustments nullifying differences between genes.  Never encountered p-value order not matching adjusted p-value order
+  return(temp.df) #returns the data frame itself for review 
+}
+
+```
+
+```{r}
+test.df <- cox_regression_eval(tpdata, texprs, "Overall_Survival_Status", "Overall_Survival_Months", 1, "fdr")
+```
+```{r}
+#AI corrected
+
+cox_regression_eval_fixed = function (tumor_sample_data, tumor_array_data, status_col, survival_col, seed_number, p_method) {
+  # Ensure data frames
+  tumor_sample_data = as.data.frame(tumor_sample_data)
+  tumor_array_data = as.data.frame(tumor_array_data)
+  
+  # Remove NAs in survival data
+  na_index = which(!is.na(tumor_sample_data[[status_col]]) & !is.na(tumor_sample_data[[survival_col]]))
+  sample_data = tumor_sample_data[na_index,]
+  array_data = tumor_array_data[, na_index]
+  
+  # Add STATUS and OSM columns
+  sample_data$STATUS = ifelse(sample_data[[status_col]] == "1:DECEASED", 1, 0)
+  sample_data$OSM = sample_data[[survival_col]]
+  
+  # Split into train/test
+  set.seed(seed_number)
+  sample.ct = nrow(sample_data)
+  train_idx = sample(1:sample.ct, size = 0.6 * sample.ct)
+  test_idx = setdiff(1:sample.ct, train_idx)
+  
+  train_sample = sample_data[train_idx, ]
+  test_sample = sample_data[test_idx, ]
+  train_array = array_data[, train_idx]
+  test_array = array_data[, test_idx]
+  
+  gene.ct = nrow(array_data)
+  pvals = rep(NA, gene.ct)
+  names(pvals) = rownames(array_data)
+  
+  # For each gene, use training median to label train/test, run Cox on train
+  train_labels = matrix(NA, nrow = gene.ct, ncol = ncol(train_array))
+  test_labels = matrix(NA, nrow = gene.ct, ncol = ncol(test_array))
+  rownames(train_labels) = rownames(array_data)
+  rownames(test_labels) = rownames(array_data)
+  
+  for (gene in 1:gene.ct) {
+    gene_name = rownames(array_data)[gene]
+    train_expr = as.numeric(train_array[gene, ])
+    median_val = median(train_expr, na.rm = TRUE)
+    train_labels[gene, ] = ifelse(train_expr > median_val, "high", "low")
+    # Only proceed if both groups present
+    if (length(unique(train_labels[gene, ])) < 2) next
+    i.cox = coxph(Surv(train_sample$OSM, train_sample$STATUS) ~ train_labels[gene, ])
+    pvals[gene_name] = summary(i.cox)$coefficients[1,5]
+    # Prepare test labels for later
+    test_expr = as.numeric(test_array[gene, ])
+    test_labels[gene, ] = ifelse(test_expr > median_val, "high", "low")
+  }
+  
+  # Adjust p-values
+  pvals.fdr = p.adjust(pvals, method = p_method)
+  
+  # Top 5 genes by raw p-value
+  top5 = names(sort(pvals, na.last = NA))[1:5]
+  
+  # Test set evaluation for top 5
+  pvals_test = rep(NA, 5)
+  names(pvals_test) = top5
+  for (i in seq_along(top5)) {
+    gene = top5[i]
+    labels = factor(test_labels[gene, ], levels = c("low", "high"))
+    if (length(unique(labels)) < 2) next
+    cox.test = coxph(Surv(test_sample$OSM, test_sample$STATUS) ~ labels)
+    pvals_test[gene] = summary(cox.test)$coefficients[1,5]
+    # Plot KM curve
+    plot(survfit(Surv(test_sample$OSM, test_sample$STATUS) ~ labels),
+         col = c("blue", "red"), lwd = 2,
+         main = paste("KM Curve for", gene, "(Test Set)"),
+         xlab = "Months", ylab = "Survival Probability")
+    legend("bottomleft", legend = c("Low", "High"), col = c("blue", "red"), lwd = 2)
+  }
+  
+  # Output summary
+  pval.df = data.frame(
+    train = pvals[top5],
+    train.fdr = pvals.fdr[top5],
+    test = pvals_test
+  )
+  print(pval.df)
+  return(list(pvals = pvals, pvals.fdr = pvals.fdr, top5 = top5, test.pvals = pvals_test, summary = pval.df))
+}
+
+
+```
+Call AI corrected script
+```{r}
+# Example function call:
+test.df.fixed <- cox_regression_eval_fixed(tpdata, texprs, "Overall_Survival_Status", "Overall_Survival_Months", 1, "fdr")
+```
+
