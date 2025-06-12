@@ -1,0 +1,439 @@
+---
+title: RBIF111 Week 10 Final
+author: "Author: Laura Wooten"
+date: "Last update: `r format(Sys.time(), '%d %B, %Y')`" 
+output: 
+  html_notebook:
+    number_sections: true
+---
+
+**Import Data**
+```{r}
+pData <- read.csv("~/Documents/RBIF111/wk10-Final/TCGA_BRCA_clinical_data.csv", row.names=1)
+eData <- read.csv("~/Documents/RBIF111/wk10-Final/TCGA_BRCA_mRNA_expression.csv", row.names=1)
+```
+
+# QUESTION 1:
+**10 points Please construct a linear regression model with ER IHC (ER_Status_By_IHC) as the input and “overall survival months” as the output. Calculate the 95% confidence interval for the regression coefficients. Explain the coefficients, their 95% CI, and the associated p-value for TMB. (Only consider IHC positive and negative records, and remove NA, and indeterminate records).**
+
+## Filter data and view distribution of OSM by ER status
+```{r}
+#filter df to be rows where ER_statue is Pos/Neg only, select columns ER/Overall survival months
+ers.osm.df <- pData[pData$ER_Status_By_IHC %in% c("Positive", "Negative") & 
+                      !is.na(pData$Overall_Survival_Months) & 
+                      !is.na(pData$TMB_nonsynonymous), 
+                    c("ER_Status_By_IHC", "Overall_Survival_Months", "TMB_nonsynonymous")]
+colnames(ers.osm.df) <- c("ER", "OSM", "TMB")
+#categorical variable to factor for linear modeling
+ers.osm.df$ER <- as.factor(ers.osm.df$ER)
+
+#-----VIEW DISTRIBUTION OF OSM ACROSS ER GROUPS-------
+# Boxplot
+boxplot(OSM ~ ER, data=ers.osm.df,
+        main="Overall Survival by ER Status",
+        ylab="Overall Survival Months",
+        xlab="ER Status",
+        col=c("blue", "pink"))
+```
+After filtering the data set to only include rows where ER ICH has positive and negative records, as well as removing rows where overall survival months (OSM) or TMB have NA values, I wanted to take a peek at the distribution of OSM stratified by ER ICH. The boxplot shows that the median OSM was slightly higher in ER-negative patients, but there is a lot of overlap between the distributions, suggesting that ER ICH alone may not be a strong predictor of survival.  
+
+## Construct linear models +/- TMB
+\ I constructed two linear models based on your feedback by email. The first takes ER ICH alone as the independent variable for the outcome of OSM, the second includes TMB as an additional independent variable.  
+```{r}
+#linear regression: Independent: ER status by ICH (categorical/binary) + TMB (continuous), Dependent: Overall survival rate (continuous)
+#Quantifies the effect of only ER on OSM
+x1.lm <- lm(OSM~ER, ers.osm.df)
+# Quantifies the effect of both ER and TMB on OSM.
+x2.lm <- lm(OSM~ER + TMB, ers.osm.df)
+
+#summary of lms
+summary(x1.lm)
+summary(x2.lm)
+
+#compare lm with/without TMB using anova
+anova(x1.lm, x2.lm)
+
+# Scatterplot: TMB vs Overall Survival Months, colored by ER status
+plot(ers.osm.df$TMB, ers.osm.df$OSM,
+     col=c("black", "red"),
+     pch=19,
+     xlab="TMB (nonsynonymous)",
+     ylab="Overall Survival Months",
+     main="TMB vs Overall Survival Months")
+legend("topright", legend=levels(ers.osm.df$ER),
+       col=c("black", "red"), pch=19, title="ER Status")
+# Add regression linee for each ER group
+for (i in seq_along(levels(ers.osm.df$ER))) {
+  lev <- levels(ers.osm.df$ER)[i]
+  idx <- ers.osm.df$ER == lev
+  abline(lm(OSM ~ TMB, data=ers.osm.df[idx,]), col=c("black", "red")[i], lwd=2)
+}
+
+```
+The linear regression for OSM ~ ER (`x1.lm`) shows that average survival for ER ICH negative patients is 56.9 months (intercept). The coefficient for `ERPositive` is -8.389, which we can interperet as ER ICH positive patients have approximately 8.4 months less survival in comparison, however, the p-value for this coefficient is 0.253. Therefore we accept the null hypothesis on this test that states there is no significant difference in overall survival between ER ICH patients. Supporting this, the R-squared value is very low (0.015) which means this regression model explains very little variance in the data.
+
+The second model (`x2.lm`) includes TMB as an additional variable. Here we see that average survival for ER ICH patients is 65.5 months, and the estimated coeffients for `ERPositive` and `TMB` are -9.313 and -4.231, respectively. Again the p-value associated with the coefficient for `ERPositive` is above the cutoff of 0.05, meaning that it is still not significant after adjusting for TMB. However, the `TMB` coefficient has a p-value of 0.0215, which means TMB is a significant predictor of overall survival. Here we can interpret this to mean that for each unit increase of TMB we see survival drop by 4.2 months. The R-squared value is still very low (0.075) meaning that even with this additional predictor, the model still doesn't explain much of the variance.
+
+The ANOVA was somewhat unnecessary, but it highlights that adding TMB to the model significantly improved the fit (F=5.49, p=0.0215). I wanted to visualize the second model, and went with a scatter plot of TMB vs overall survival months, colored by ER ICH status. The regression line for ERNegative (black) is mostly flat, which suggests that as TMB increases there is no affect on OSM (no association). The red regression line (ERPositive) has a negative slope, showing that as TMB increases OSM decreases. Although there's a large spread of survival months at each TMB value, I think the trend for ERPositive is pretty clear.
+
+
+## Calculate Confidence Intervals and plot
+```{r}
+
+#-----------calc 95 CIs----------
+x1.ci <- confint(x1.lm); x1.ci
+x2.ci <- confint(x2.lm); x2.ci
+
+
+# Extract coefficients and CIs for both models
+coefs1 <- coef(x1.lm)
+ci1 <- confint(x1.lm)
+df1 <- data.frame(
+  term = names(coefs1),
+  estimate = coefs1,
+  lower = ci1[, 1],
+  upper = ci1[, 2],
+  model = "ER only"
+)
+
+coefs2 <- coef(x2.lm)
+ci2 <- confint(x2.lm)
+df2 <- data.frame(
+  term = names(coefs2),
+  estimate = coefs2,
+  lower = ci2[, 1],
+  upper = ci2[, 2],
+  model = "ER + TMB"
+)
+
+# Combine
+ci_df <- rbind(df1, df2)
+ci_df$term_model <- paste(ci_df$term, ci_df$model, sep=": ")
+
+# Plot
+plot(1:nrow(ci_df), ci_df$estimate, ylim = range(ci_df$lower, ci_df$upper),
+     pch = 19, xaxt = "n", xlab = "", ylab = "Coefficient Estimate",
+     main = "Coefficient Estimates with 95% CI (Both Models)")
+arrows(1:nrow(ci_df), ci_df$lower, 1:nrow(ci_df), ci_df$upper,
+       angle = 90, code = 3, length = 0.1)
+axis(1, at = 1:nrow(ci_df), labels = ci_df$term_model, las=2, cex.axis=0.4)
+abline(h = 0, col = "red", lty = 2)
+
+```
+The 95% confidence intervals for the regression coefficients show that ER status is not a significant predictor of overall survival, as the interval includes zero in both models. In contrast, TMB is a significant negative predictor in the multiple regression model, with a 95% CI that does not include zero (–7.8 to –0.6). This reiterates that higher TMB is associated with shorter survival.The coefficient plot further illustrates these results, with only the TMB coefficient’s CI not crossing zero. The CI measures the reliability of the estimated coefficients from the model, it states that if we repeated the model with new random samples from the same population many times, 95% of those intervals would contain the true value of the coefficient, so the smaller the interval (as with `TMB: ER + TMB`) the more precice the estimate is.
+
+---
+
+# QUESTION 2:
+**15 points Please construct a cox regression model with ER IHC (ER_Status_By_IHC) as the input and “overall survival months” & “Overall_Survival_Status” as the output. Calculate the 95% Odds ratio for the regression model.Plot the Kaplan-Meier curve. Explain the %95 Odds ratio, and the associated p-value for TMB. (Only consider IHC positive and negative records, and remove NA, and indeterminate records).**
+
+## Construct Cox models, Calculate CIs, and plot
+```{r}
+library(survival)
+
+#filter data
+cox.df <- pData[pData$ER_Status_By_IHC %in% c("Positive", "Negative") &
+                  !is.na(pData$Overall_Survival_Months) &
+                  !is.na(pData$Overall_Survival_Status) &
+                  !is.na(pData$TMB_nonsynonymous), 
+                c("ER_Status_By_IHC", "Overall_Survival_Months", "Overall_Survival_Status", "TMB_nonsynonymous")]
+colnames(cox.df) <- c("ER", "OSM", "Status", "TMB")
+
+#categrorical variable to factor for cox regression
+cox.df$ER <- as.factor(cox.df$ER)
+
+#survival status to binary ("1:DECEASED" = 1, "0:LIVING" = 0)
+cox.df$Status <- ifelse(cox.df$Status == "1:DECEASED", 1, 0)
+
+#fit cox model ER only
+x1.cox <- coxph(Surv(OSM, Status) ~ ER, data = cox.df)
+#fit cox ER + TMB
+x2.cox <- coxph(Surv(OSM, Status) ~ ER + TMB, data = cox.df)
+
+summary(x1.cox)
+summary(x2.cox)
+
+#compare both cox models with anova
+anova(x1.cox, x2.cox)
+
+#get 95% CIs for hazard ratios
+x1.cox.ci <- exp(confint(x1.cox)); x1.cox.ci
+x2.cox.ci <- exp(confint(x2.cox)); x2.cox.ci
+
+
+#-----------COX MODEL CI PLOT -----------
+# get coefficients and CIs for both models
+coefs1.cox <- exp(coef(x1.cox))
+ci1.cox <- exp(confint(x1.cox))
+df1.cox <- data.frame(
+  term = names(coefs1.cox),
+  estimate = coefs1.cox,
+  lower = ci1.cox[, 1],
+  upper = ci1.cox[, 2],
+  model = "ER only"
+)
+
+coefs2.cox <- exp(coef(x2.cox))
+ci2.cox <- exp(confint(x2.cox))
+df2.cox <- data.frame(
+  term = names(coefs2.cox),
+  estimate = coefs2.cox,
+  lower = ci2.cox[, 1],
+  upper = ci2.cox[, 2],
+  model = "ER + TMB"
+)
+
+# Combine
+ci_df_cox <- rbind(df1.cox, df2.cox)
+ci_df_cox$term_model <- paste(ci_df_cox$term, ci_df_cox$model, sep=": ")
+
+# Plot
+plot(1:nrow(ci_df_cox), ci_df_cox$estimate, ylim = range(ci_df_cox$lower, ci_df_cox$upper),
+     pch = 19, xaxt = "n", xlab = "", ylab = "Hazard Ratio",
+     main = "Hazard Ratios with 95% CI (both models)", log = "y")
+arrows(1:nrow(ci_df_cox), ci_df_cox$lower, 1:nrow(ci_df_cox), ci_df_cox$upper,
+       angle = 90, code = 3, length = 0.1)
+axis(1, at = 1:nrow(ci_df_cox), labels = ci_df_cox$term_model, las=2, cex.axis=0.5)
+abline(h = 1, col = "red", lty = 2)
+
+
+
+```
+While the hazard ratios for `ERPositive` in model 1 (ER only), `ERPositive` and `TBM` in model 2 (ER + TMB), were slightly greater than 1, which would indicate a higher risk of death compared to ER ICH negative patients, the associated p-values are all greater than 0.6, meaning that neither of these variables are significant predictors of survival according to the Cox regression. Adding TMB to the model did not improve the models fit (ANOVA p=0.66) 
+
+The 95% CIs of all hazard ratios in both models include 1, and we can see in the plot that the intervals are fairly wide. This suggests that there is no statistically significant association between ER ICH status or TMB and OSM in this data set, and that there is a lot of uncertainty in the estimates. As opposed to linear models, CIs in survival analysis are looking at the hazard ratios indicate the risk of an event occurring (death) between groups, with 1 serving as no risk. If the CI includes 1, the predictor is not significant, meaning we cannot determine a meaningful difference in risk. 
+
+## Survival Plot
+```{r}
+#-----plot KM survival curves by ER status----
+surv_obj <- Surv(cox.df$OSM, cox.df$Status)
+fit_km <- survfit(surv_obj ~ ER, data = cox.df)
+plot(fit_km, col = c("blue", "red"), lwd = 2,
+     xlab = "Months", ylab = "Survival Probability",
+     main = "Kaplan-Meier Survival by ER Status")
+legend("bottomleft", legend = levels(cox.df$ER), col = c("blue", "red"), lwd = 2)
+```
+
+The Kaplan_Meier plot shows the survival probability over time for ERNegative (blue) and ERPositive (red) groups. The curves are similar and overlap a lot, which visually supports that there is no significant difference in survival between ER ICH groups. This plot does not include TMB as it is a continuous variable, and KM curves are used to visualize survival probabilites between groups. However, if we wanted to demonstrate this we could split TMB into groups (like high vs low) and then plot the survival by TMB groups.
+
+# QUESTION 3:
+**15 points Compare the linear regression model from question 1 with the Cox regression model from question 2. Which model demonstrates higher accuracy? Why is “Overall_Survival_Status” necessary when “overall survival months” already serves as an output?**
+
+Comparing the two approaches, linear regression identified TMB as a significant predictor of overall survival months, while Cox regression did not find either ER status or TMB to be significant predictors of survival time. Although linear regression showed a modest improvement in model fit with TMB, both models had low overall accuracy and explained little variance in the data (low R-squared values). In this case Cox regression is more appropriate for survival data because it accounts for censored observations, which are samples/patients who have not yet experienced the event (death) by the end of the study. This is why “Overall_Survival_Status” is necessary in addition to “overall survival months”, because it creates a survival object that allows the model to distinguish between completed events and censored cases, which gives an accurate estimation of survival risk. Linear regression ignores censoring and treats all survival times as completed events, which can bias the results if many patients are censored, and find relationships in the data that don't exist.  
+
+# QUESTION 4:
+**35 points Identify the genes most significantly associated with ‘overall survival months’ and ‘Overall_Survival_Status’ in tumor samples. We will employ the holdout method for cross-validation by splitting the dataset into two parts: a training set comprising 60% of the data and a testing set comprising 40%. The model will be trained on the training set, tested on the testing set, and its performance evaluated. To simplify the analysis, we will use the median expression of each gene as a cutoff to categorize patients into high and low expression groups for input. Please write code to calculate p-values between outcomes and all genes in the mRNA expression table using Cox regression. All p-values for each gene need to be saved and corrected for multiple hypothesis testing. Please report the top 5 genes based on p-values in the training set and their corresponding p-values in the testing set. Please save the top 5 genes Kaplan-Meier curves for testing set results.**
+
+## Select tumor samples only and clean data
+```{r}
+#1. select tumor samples only & make sure samples are in the same order in both expression data and clinical data
+common.smpls <- intersect(colnames(eData), pData$Sample_ID_Tumor) #restrict samples in eData to only the tumor_samples as listed in pData
+texprs <- eData[, common.smpls]
+tpdata <- pData[pData$Sample_ID_Tumor==common.smpls,]
+rownames(tpdata) <- tpdata$Sample_ID_Tumor #make tumorID the rownames for simplicity
+
+#remove nas, create new columns (status = binary, OSM = survival months) - keep together at end for ease
+tpdata <- tpdata[!is.na(tpdata$Overall_Survival_Months) & !is.na(tpdata$Overall_Survival_Status),] #select tumor samples without NA values for the cox survival object
+tpdata$STATUS <- ifelse(tpdata$Overall_Survival_Status == "1:DECEASED", 1, 0) #convert whether event of death has occurred from string to binary
+tpdata$OSM <- tpdata$Overall_Survival_Months
+#subset texprs to match tpdata
+texprs <- texprs[,rownames(tpdata)] #if any samples have NA in survival data from clinical dataframe, remove those samples from the expression data.
+
+```
+
+## Split into Training/Testing sets
+```{r}
+set.seed(1)
+train.index <- sample(1:nrow(tpdata), size = 0.6*nrow(tpdata)) #sample without replacement 60% of number of samples - rounds down to whole number
+tpdata.train <- tpdata[train.index,] #select rows corresponding to sampled indices
+tpdata.test <- tpdata[-train.index,] #select rows not corresponding to sampled indices
+texprs.train <- texprs[, rownames(tpdata.train)] #filter expression data to training
+texprs.test <- texprs[, rownames(tpdata.test)]
+#check to make sure all samples are included
+as.numeric(dim(texprs.train)[2]) + as.numeric(dim(texprs.test)[2]) == as.numeric(dim(tpdata)[1])
+
+```
+
+All samples are being accounted for within the training/testing sets
+
+## Use Median values as a cutoff and fit Cox regression for each gene for Survival ~ High/low expression groups
+```{r eval=FALSE, echo=TRUE}
+#3. For each gene (loop) in training set find median expression (dont want model to know median value of whole data set),
+# partition training samples into high or low groups if the sample value exceeds the median value
+# fit cox model: outcome training survival months & status, sample labeled as high/low (testing whether high/low expression patient group for each gene is correlated with the hazard of the event occurring)
+# save p value for each gene
+
+pvals <- c()
+
+#training samples only
+for (gene in rownames(texprs.train)){
+  i.gene.exprs <- as.numeric(texprs.train[gene,]) #expression values for i-th gene in all training samples - as numeric or median will error
+  i.gene.median <- median(i.gene.exprs, na.rm = TRUE) #median of values for that gene in training samples
+  smpl.labels <- ifelse(i.gene.exprs > i.gene.median, "high", "low") #each sample value for that gene compared to median, labeled as high or low
+  #smpl.labels is just a vector of "high" or "low" not linked to values anymore
+  if (length(unique(smpl.labels))<2){
+    next #any gene that has all samples in either high or low, will not be assessed.
+  }
+  i.cox <- coxph(Surv(tpdata.train$OSM, tpdata.train$STATUS) ~ smpl.labels)
+  pvals[gene] <- summary(i.cox)$coefficients[1,5]
+}
+```
+This section of code loops through each gene, the median expression value is calculated for the training set of data, and then each sample value in the training set is compared to the median and if higher is labeled as “high” other wise “low”. When I began I was getting errors that all samples for a particular iteration (gene) were falling under one label. This could happen if all samples have the same expression value, therefore I added in a line of code to check how many labels were assigned for that gene, and if only 1 was present to disregard these genes from the analysis. Therefore, only genes that have different expression values across samples are included in the Cox regression. 
+
+The Cox regression in this section tests only the training samples high/low categories and their relationship with survival from the survival object of OSM and STATUS. The p-values are then saved for each gene in the named vector `pvals`. 
+
+## Correct for multple hypothesis testing
+```{r}
+pvals.fdr <-  p.adjust(pvals, method = "fdr")
+sort(pvals)[1:10]
+
+sort(pvals.fdr)[1:10]
+```
+You can see that after using a FDR correction, my top gene is still present, however all genes afterwards appear in alphabetical order. I tried looking into this best I could and found that when perfomring thousands of statistical tests, the FDR correction adjusts p-values with the aim of controlling for false positives. However if none of the raw p-values are particularly small, the adjustment can assign the same adjusted p-value to many genes. Therefore, when the genes are sorted by adjusted p-value, the top genes will appear in alphabetical order if their values are the same. From my understanding this happens because the FDR method is based on rank, so when many p-values are similar (and the number of tests is in the thousands) their adjusted values become identical and can lead to ties. After our correspondence I implemented your suggestions, please see below.
+
+1. DO AADACL3, AARSDI, ABCA1, ABCA7 ETC HAVE THE SAME UNCORRECTED PVALS?
+```{r}
+sort(pvals.fdr)[2:10]
+A.names <- names(sort(pvals.fdr)[2:10])
+pvals[A.names]
+```
+Although the raw p-values for many genes are different, the FDR correction can assign the same adjusted p-value to multiple genes  because the adjustment is based on the rank and total number of tests, and when most p-values are not very small, the correction flattens the adjusted values and can result in ties [1].
+
+2. TRY DIFFERENT FUNCTION TO CALCULATE FDR -> QVALUE
+```{r}
+library(qvalue)
+q <- qvalue(pvals)
+qvals <- q$qvalues
+
+# Top 5 genes by q-value
+sort(qvals)[1:10]
+names(sort(qvals))[1:5]
+```
+Same result as using `p.adjust()`.
+
+3. TRY BONFERRONI CORRECTION ON PVALS.
+```{r}
+pvals.bon <- p.adjust(pvals, method = "bonferroni")
+sort(pvals.bon)[1:10]
+```
+All genes other than STARD6 now have an adjusted value of 1.
+
+Based on these results, no genes reached significance after FDR or Bonferroni correction. While I will continue to report their corrected pvalues alongside raw values downstream, I will be proceeding with the top 5 genes based on raw p-values for this analysis, knowing that the results of this anaysis would need to be interpreted with caution as they don't meed significance thresholds after multiple testing correction. Upon looking into this further I found that this is an acceptable method for data exploration, with the caveat that validation is needed [2].
+
+## Select top5 genes for model testing
+```{r}
+#4. select top 5 uncorrected - proceed with test set
+top5 <- names(sort(pvals)[1:5])
+
+#5 use these top genes in testing set data + plot KM curves
+texprs.test <- texprs.test[, rownames(tpdata.test)]
+pvals.test <- c()
+oldpar <- par(mfrow = c(2,3))
+for (gene in top5){
+  median <- median(as.numeric(texprs.train[gene,]), na.rm = TRUE) #still use training median - dont let model see new data
+  label.test <- ifelse(texprs.test[gene,] > median, "high", "low")
+  label.test <- factor(label.test, levels = c("low", "high"))
+  cox.test <- coxph(Surv(tpdata.test$OSM, tpdata.test$STATUS)~label.test)
+  pvals.test[gene] <- summary(cox.test)$coefficients[1,5]
+
+  #plot
+  plot(survfit(Surv(tpdata.test$OSM, tpdata.test$STATUS)~label.test),
+       col = c("blue", "red"), lwd = 2,
+       main = paste("KM Curve for", gene, "(Test Set)"),
+       xlab = "Months", ylab = "Survival Probability")
+  legend("bottomleft", legend = c("Low", "High"), col = c("blue", "red"), lwd = 2)
+}
+par(oldpar)
+#pvals.test
+pval.df <- data.frame(train= pvals[top5], train.fdr=pvals.fdr[names(pvals[top5])], test= pvals.test[names(pvals[top5])])
+pval.df
+```
+DIn this step the top five uncorrected genes are looped through using the expression data of the testing set of samples. I still used the training set median for each gene, as this avoids data leakage, and we are looking to see how well the model can generalize and respond to new data. The p-values for the top5 genes are returned along side the training p-values. You will see that `FAM138B` returned NA. This has occurred because in the test set of samples, all the samples were categorized in either the high or low group and therefore cannot be assessed. We also see that all genes return non-significant p-values for Cox regression. I’m not surprised as all upstream tests also indicated that these genes are not significant predictors for survival using the Cox method.  
+
+The KM curves for the test set illustrate the survival distributions for high and low expression groups for each top gene. The curves in each of these overlaps, with no clear or consistent separation between groups. The curve for `FAM138B` could not be properly evaluated because of a lack of separation between survival groups. Instead we see a solid blue line (indicating that all samples were placed in the low group) and dashed red and blue lines. These dashed lines indicate the portion of the curve where only censored observations remain (no more events/death). It is also of note that curves for `HSPB7` and `BCL2L14` have lines that are cut short in either the high or low groups. This indicates that the group that does not make it to the end of the curve has no samples from patients that survived past approximately 90 months.  
+
+I would make comments that assess the model's ability to generalize using the test set for validation, however, given that none of the genes reached statistical significance, it becomes difficult to evaluate the model's performance in a meaningful way. While I have reported the corrected p-values alongside raw values for transparency, I proceeded with selecting the top five genes based on raw p-values and acknowledge that these results should be interpreted with caution. Since no significant predictors emerged after multiple testing correction, these findings remain exploratory. The KM curves further illustrate that there is no clear separation in survival distributions between high and low expression groups, which reiterates that this model has a lack of predictive power in this data set. 
+
+I assume that having no genes reach significance in the adjusted training set or the testing set is not the predicted outcome for this assignment. I tested out several methods, tried changing the seed, but kept getting results that were not significant. I hope I have provided enough explanation and described my code sufficiently to demonstrate that I understand the methods, and concepts in this question. Please do reach out if you discover what has caused this deviation in my results, I’d be very interested as I have tried to find it myself and can’t (which is very frustrating!). 
+
+# QUESTION 5:
+**25 points Find a breast cancer dataset containing gene expression and survival data; cbioportal (https://www.cbioportal.org/) is a good starting point. Test the top 5 genes identified in question 4 and report whether high or low expression of each gene is associated with overall survival. Please save the top 5 genes Kaplan-Meier curves for this external validation results.**
+
+## Load and filter data
+```{r eval=FALSE, echo=TRUE}
+#load data
+clinical.data <- read.delim("~/Documents/RBIF111/wk10-Final/brca_tcga_pan_can_atlas_2018_clinical_data.tsv")
+rownames(clinical.data) <- clinical.data$Sample.ID
+download.edata <- read.delim("~/Documents/RBIF111/wk10-Final/data_mrna_seq_v2_rsem.txt")
+
+#any missing values? No
+unique(is.na(clinical.data$Overall.Survival..Months.))
+unique(is.na(clinical.data$Overall.Survival.Status))
+
+
+#filter data
+cbio.5 <- download.edata #copy to new object before modifying
+cbio.5 <- cbio.edata[cbio.edata$Hugo_Symbol %in% top5,] #Hugo_symbol is column names for genes, pull only rows that match the top5 genes
+rownames(cbio.5) <- cbio.5$Hugo_Symbol #make gene names the row names for simplicity
+cbio.5 <- cbio.5[, -c(1:2)] #remove the first two columns that dont contain expression data
+
+clinical.data$STATUS <-  ifelse(clinical.data$Overall.Survival.Status == "1:DECEASED",1,0) #change survival status to binary
+#create dataframe of only columns from clinical data needed for analysis
+cbio.pdata <- data.frame(sample= clinical.data$Sample.ID, 
+                         OSM= clinical.data$Overall.Survival..Months., S
+                         TATUS= clinical.data$STATUS)
+rownames(cbio.pdata) <- cbio.pdata$sample
+#sample names from clinical df vs expression df have different separators
+rownames(cbio.pdata) <- gsub("-", ".", rownames(cbio.pdata)) 
+
+#make sure same samples are present in both dfs, and in the same order.
+common.cbio <- intersect(colnames(cbio.edata), rownames(cbio.pdata)) 
+cbio.5 <- cbio.5[, common.cbio]
+cbio.pdata <- cbio.pdata[common.cbio,]
+```
+
+## Apply Cox regression and Plot
+```{r warning=FALSE}
+pvals.cbio <- c()
+oldpar <- par(mfrow= c(2,3))
+for (gene in top5) {
+  # Use the training set median for this gene
+  train.median <- median(as.numeric(texprs.train[gene, ]), na.rm = TRUE)
+  exprs.cbio <- as.numeric(cbio.5[gene, ])
+  labels.cbio <- ifelse(exprs.cbio > train.median, "high", "low") #for all 1082 samples
+  #labels.cbio <- factor(labels.cbio, levels = c("low", "high"))
+  
+  # Only run if both groups are present
+  if (length(unique(labels.cbio)) < 2) {
+    pvals.cbio[gene] <- NA
+    next
+  }
+  
+  cox.cbio <- coxph(Surv(cbio.pdata$OSM, cbio.pdata$STATUS) ~ labels.cbio)
+  pvals.cbio[gene] <- summary(cox.cbio)$coefficients[1, 5]
+  
+  # Plot KM curve
+  plot(survfit(Surv(cbio.pdata$OSM, cbio.pdata$STATUS) ~ labels.cbio),
+       col = c("blue", "red"), lwd = 2,
+       main = paste("KM Curve for", gene, "(cbioportal)"),
+       xlab = "Months", ylab = "Survival Probability")
+  legend("bottomleft", legend = c("Low", "High"), col = c("blue", "red"), lwd = 2)
+}
+par(oldpar)
+
+
+```
+```{r}
+pvals.cbio.fdr <- p.adjust(pvals.cbio, method = 'fdr')
+
+cbio.pvals <- data.frame(pval= pvals.cbio, adjusted_p= pvals.cbio.fdr); cbio.pvals
+```
+To validate the top five genes identified in the previous analysis, I downloaded a breast cancer dataset from cbioportal and applied the Cox regression modeling to determine their association with overall survival. As in the initial analysis, I used the median gene expression from the training set as a cutoff to classify samples into high and low expression groups. 
+
+The resulting p-values indicate that most genes do not show statistically significant associations with survival outcomes. `STARD6`, `FAM138B`, and `ZNF845` show particularly high p-values, suggesting no meaningful relationship between expression levels and survival. `HSPB7` demonstrates a relatively lower p-value (0.240), but is still above the 0.05 threshold. The most notable result comes from `BCL2L14`, which has a p-value of 0.029 which suggests a potential association between its expression and overall survival. However, given the context of multiple hypothesis testing, I performed another FDR correction and the adjusted p-value was no longer significant (0.146). 
+
+The Kaplan-Meier curves for each gene further illustrate these trends, with most curves showing a lot of overlap between high and low expression groups, again suggesting the absence of strong survival stratification. `BCL2L14` shows some separation, but then curves meet at the right of the plot and overlap. Overall, these results are similar to the findings from the training dataset, where no genes reached significance after correction for multiple hypothesis testing. 
+
+# References:\
+1. Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate: a practical and powerful approach to multiple testing. Journal of the Royal Statistical Society: Series B (Methodological), 57(1), 289-300.\
+2. Bourgon R, Gentleman R, Huber W. (2010). Independent filtering increases detection power for high-throughput experiments. PNAS, 107(21), 9546-9551. doi:10.1073/pnas.0914005107
